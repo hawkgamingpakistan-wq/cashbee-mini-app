@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6b800">
+<title>CashBee 🐝 — Play & Earn</title>
+
+<!-- Telegram Mini App SDK: required for Telegram.WebApp -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<!-- Firebase client SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<!-- Monetag rewarded ad SDK -->
+<script src="https://libtl.com/sdk.js" data-zone="11935934" data-sdk="show_11935934"></script>
+
+<style>
+:root{--gold:#f6b800;--gold2:#ffd75a;--ink:#111;--muted:#6f6f6f;--bg:#fffaf0;--card:#fff;--line:#eee3c8}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:linear-gradient(180deg,#fff4cc 0,#fffaf0 38%,#fff 100%);color:var(--ink)}
+#cashbee{max-width:520px;margin:auto;min-height:100vh;padding-bottom:90px}
+.top{padding:18px 16px 8px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:22px}
+.bee{width:42px;height:42px;border-radius:14px;background:#111;display:grid;place-items:center;color:#ffd34e;font-size:24px}
+.pill{background:#fff;border:1px solid var(--line);padding:8px 12px;border-radius:999px;font-weight:800}
+.hero{margin:10px 16px;padding:20px;border-radius:26px;background:linear-gradient(135deg,#111,#292929);color:#fff;box-shadow:0 10px 30px #0001}
+.hero small{color:#d8d8d8}.balance{font-size:36px;font-weight:900;margin:7px 0}.coins{color:#ffd34e;font-weight:800}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:14px 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:17px;box-shadow:0 6px 18px #0000000a}
+.card h3{margin:8px 0 5px;font-size:16px}.card p{margin:0;color:var(--muted);font-size:13px}.icon{font-size:27px}
+.btn{width:100%;border:0;border-radius:14px;padding:12px 14px;font-weight:900;cursor:pointer;margin-top:12px;background:var(--gold);color:#111}
+.btn.secondary{background:#111;color:#fff}.btn:disabled{opacity:.5;cursor:not-allowed}
+.section{padding:4px 16px}.section h2{font-size:18px;margin:8px 0}
+.task{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #f0eadc}.task:last-child{border-bottom:0}
+.task .grow{flex:1}.task b{display:block}.task span{font-size:12px;color:var(--muted)}
+.mini{padding:9px 12px;border-radius:11px;border:1px solid var(--line);background:#fff;font-weight:800}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(520px,100%);display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border-top:1px solid var(--line);padding:9px 8px env(safe-area-inset-bottom,9px);z-index:5}
+.nav button{border:0;background:none;font-weight:800;color:#777;padding:8px 3px}.nav button.active{color:#111}
+.notice{margin:0 16px;padding:12px 14px;border-radius:14px;background:#fff7d8;border:1px solid #f0d67d;font-size:12px;line-height:1.45}
+.toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:#111;color:#fff;padding:11px 15px;border-radius:999px;font-size:13px;display:none;z-index:30;max-width:90%;text-align:center}
+.modal{position:fixed;inset:0;background:#0008;display:none;align-items:end;justify-content:center;z-index:20}
+.sheet{width:min(520px,100%);background:#fff;border-radius:26px 26px 0 0;padding:22px;max-height:90vh;overflow:auto}
+.input{width:100%;padding:13px;border:1px solid var(--line);border-radius:13px;margin:6px 0 12px;font:inherit}
+.stat{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #f0eadc;overflow-wrap:anywhere}
+.stat b{text-align:right;max-width:65%;overflow-wrap:anywhere}
+@media(max-width:360px){.grid{gap:8px;padding-left:10px;padding-right:10px}.card{padding:12px}.hero{margin-left:10px;margin-right:10px}}
+</style>
+</head>
+<body>
+<main id="cashbee">
+<header class="top"><div class="brand"><div class="bee">🐝</div><span>CashBee</span></div><div class="pill" id="userPill">Connecting…</div></header>
+<section class="hero"><small>Your CashBee balance</small><div class="balance">$<span id="balance">0.00</span></div><div class="coins"><span id="coins">0</span> Coins</div><button class="btn" id="withdrawBtn">💸 Withdraw from $1</button></section>
+<div class="notice" id="securityNotice">Free manual mode: this app reads your balance from Firebase. Tasks and ads do not add coins automatically; an admin must review rewards. Automatic ad rewards need secure verification.</div>
+<section class="grid">
+<article class="card"><div class="icon">📺</div><h3>Watch & Earn</h3><p>Reward depends on valid ad completion and server verification.</p><button class="btn" id="adBtn">Watch Ad</button></article>
+<article class="card"><div class="icon">🎁</div><h3>Daily Bonus</h3><p>Keep your daily streak alive.</p><button class="btn secondary" id="dailyBtn">Claim Bonus</button></article>
+<article class="card"><div class="icon">🎡</div><h3>Lucky Spin</h3><p>One free spin for fun.</p><button class="btn" id="spinBtn">Spin</button></article>
+<article class="card"><div class="icon">🧠</div><h3>Quick Quiz</h3><p>Answer a simple question.</p><button class="btn secondary" id="quizBtn">Play Quiz</button></article>
+</section>
+<section class="section"><h2>Daily Tasks</h2><div class="card">
+<div class="task"><div class="icon">🐝</div><div class="grow"><b>Open CashBee today</b><span>Daily activity</span></div><button class="mini" id="openTask">+10</button></div>
+<div class="task"><div class="icon">👥</div><div class="grow"><b>Invite a friend</b><span>Referral rewards require backend verification</span></div><button class="mini" id="referBtn">Invite</button></div>
+<div class="task"><div class="icon">🏆</div><div class="grow"><b>7-Day Streak</b><span>Build your streak</span></div><button class="mini" id="streakBtn">View</button></div>
+</div></section>
+<section class="section" id="profileSection" style="display:none"><h2>Profile</h2><div class="card">
+<div class="stat"><span>User</span><b id="profileName">Guest</b></div><div class="stat"><span>Firebase UID</span><b id="profileUid">—</b></div><div class="stat"><span>Coins</span><b id="profileCoins">0</b></div><div class="stat"><span>Referral</span><b>10%</b></div><div class="stat"><span>Minimum withdrawal</span><b>$1.00</b></div>
+</div></section>
+<nav class="nav"><button class="active" data-tab="home">🏠<br>Home</button><button data-tab="earn">🎮<br>Earn</button><button data-tab="ref">👥<br>Refer</button><button data-tab="profile">👤<br>Profile</button></nav>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="modal" id="withdrawModal"><div class="sheet"><h2>Withdraw</h2><p style="color:#6f6f6f">Minimum withdrawal: $1.00. This form submits a request only; it does not send a payment.</p>
+<label for="amount">Amount (USD)</label><input class="input" id="amount" type="number" min="1" step="0.01" placeholder="1.00">
+<label for="method">Method</label><select class="input" id="method"><option>UPI</option><option>Bank Transfer</option><option>USDT</option></select>
+<label for="details">Payment details</label><input class="input" id="details" maxlength="300" autocomplete="off" placeholder="UPI ID / bank details / wallet address">
+<button class="btn" id="submitWithdrawal">Submit Request</button><button class="btn secondary" id="closeModal">Cancel</button></div></div>
+</main>
+
+<script>
+'use strict';
+const firebaseConfig = {
+  apiKey: "AIzaSyCjXbCgARUdUhQSXZcwfQ8pBrb-c5706rg",
+  authDomain: "cashbee-18fda.firebaseapp.com",
+  projectId: "cashbee-18fda",
+  storageBucket: "cashbee-18fda.firebasestorage.app",
+  messagingSenderId: "571973453825",
+  appId: "1:571973453825:web:01784ea53890893a619800",
+  measurementId: "G-EKKJBYLSDN"
+};
+
+const $ = id => document.getElementById(id);
+const state = { coins: 0, lastDaily: null, user: null, telegramUser: null, telegramApp: null, busy: false };
+let toastTimer = null;
+
+function toast(message) {
+  const el = $('toast');
+  el.textContent = message;
+  el.style.display = 'block';
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.style.display = 'none'; }, 2600);
+}
+function render() {
+  $('coins').textContent = String(state.coins);
+  $('balance').textContent = (state.coins / 1000).toFixed(2);
+  $('profileCoins').textContent = String(state.coins);
+}
+function setButtonsDisabled(disabled) {
+  ['adBtn','dailyBtn','spinBtn','quizBtn','openTask','referBtn','streakBtn','withdrawBtn','submitWithdrawal'].forEach(id => {
+    const el = $(id); if (el) el.disabled = disabled;
+  });
+}
+
+async function ensureUser() {
+  // Telegram initDataUnsafe is used only for display. It is NOT trusted identity proof.
+  try {
+    const tg = window.Telegram && window.Telegram.WebApp;
+    if (tg) {
+      state.telegramApp = tg;
+      tg.ready();
+      tg.expand();
+      state.telegramUser = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
+      if (tg.colorScheme === 'dark') document.documentElement.style.colorScheme = 'light';
+    }
+  } catch (err) { console.warn('Telegram WebApp initialization:', err); }
+
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  // Reuse an existing Firebase session where possible; otherwise create anonymous session.
+  let user = auth.currentUser;
+  if (!user) {
+    const credential = await auth.signInAnonymously();
+    user = credential.user;
+  }
+  state.user = user;
+
+  const ref = db.collection('users').doc(user.uid);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    const displayName = (state.telegramUser && state.telegramUser.first_name) || 'CashBee User';
+    await ref.set({
+      uid: user.uid,
+      displayName,
+      coins: 0,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    state.coins = 0;
+  } else {
+    const data = snap.data() || {};
+    state.coins = Number(data.coins || 0);
+    state.lastDaily = data.lastDaily || null;
+  }
+
+  // Keep the displayed balance in sync when an admin updates this user's Firestore record.
+  ref.onSnapshot(snapshot => {
+    if (!snapshot.exists) return;
+    const data = snapshot.data() || {};
+    state.coins = Number(data.coins || 0);
+    state.lastDaily = data.lastDaily || null;
+    render();
+  }, err => console.warn('Live balance listener:', err));
+
+  $('userPill').textContent = ((state.telegramUser && state.telegramUser.first_name) || 'User').slice(0, 14);
+  $('profileName').textContent = (state.telegramUser && state.telegramUser.first_name) || 'CashBee User';
+  $('profileUid').textContent = user.uid.slice(0, 10) + '…';
+  if (!state.telegramUser) {
+    $('securityNotice').textContent = 'Open this page from the Telegram bot to use Telegram Mini App features. Rewards and payments are demo-only until server-side Telegram and ad verification is implemented.';
+  }
+  render();
+}
+
+$('adBtn').onclick = async () => {
+  if (typeof window.show_11935934 !== 'function') { toast('Ad SDK is not loaded. Try again later.'); return; }
+  try {
+    await window.show_11935934();
+    toast('Ad flow finished. No coins were added; server verification is required.');
+  } catch (err) {
+    console.warn('Rewarded ad error:', err);
+    toast('Ad could not be shown. Please try later.');
+  }
+};
+$('dailyBtn').onclick = () => toast('Daily Bonus claim needs admin review. No coins were added yet.');
+$('spinBtn').onclick = () => toast('Spin is for fun only; it does not award coins.');
+$('quizBtn').onclick = () => toast('Quiz claim needs admin review. No coins were added yet.');
+$('openTask').onclick = () => toast('Task claim needs admin review. No coins were added yet.');
+$('referBtn').onclick = async () => {
+  const botUsername = 'CashBeeWorldBot'; // Telegram bot username without @.
+  if (!botUsername) { toast('Referral link is being prepared.'); return; }
+  const link = 'https://t.me/' + botUsername + '?startapp=ref_' + encodeURIComponent(state.user ? state.user.uid : '');
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(link);
+      toast('Referral link copied.');
+    } else {
+      window.prompt('Copy your referral link:', link);
+    }
+  } catch (_) { window.prompt('Copy your referral link:', link); }
+};
+$('streakBtn').onclick = () => toast('Streak is for tracking only; it does not award coins.');
+$('withdrawBtn').onclick = () => { $('withdrawModal').style.display = 'flex'; };
+$('closeModal').onclick = () => { $('withdrawModal').style.display = 'none'; };
+$('withdrawModal').addEventListener('click', e => {
+  if (e.target === $('withdrawModal')) $('withdrawModal').style.display = 'none';
+});
+
+$('submitWithdrawal').onclick = async () => {
+  if (!state.user || state.busy) { toast('Please wait for the app to connect.'); return; }
+  const amount = Number($('amount').value);
+  const details = $('details').value.trim();
+  const method = $('method').value;
+  if (!Number.isFinite(amount) || amount < 1 || amount > 10000) { toast('Enter an amount from $1 to $10,000.'); return; }
+  if (!details || details.length > 300) { toast('Enter valid payment details (max 300 characters).'); return; }
+  state.busy = true; setButtonsDisabled(true);
+  try {
+    const db = firebase.firestore();
+    await db.collection('withdrawals').add({
+      userId: state.user.uid,
+      amount,
+      method,
+      details,
+      status: 'pending',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    toast('Request submitted for manual review. No payment has been sent.');
+    $('withdrawModal').style.display = 'none';
+    $('amount').value = '';
+    $('details').value = '';
+  } catch (err) {
+    console.error('Withdrawal request failed:', err);
+    toast('Could not submit request. Check Firebase rules and connection.');
+  } finally {
+    state.busy = false; setButtonsDisabled(false);
+  }
+};
+
+document.querySelectorAll('.nav button').forEach(button => {
+  button.onclick = () => {
+    document.querySelectorAll('.nav button').forEach(item => item.classList.remove('active'));
+    button.classList.add('active');
+    const tab = button.dataset.tab;
+    $('profileSection').style.display = tab === 'profile' ? 'block' : 'none';
+    if (tab === 'ref') toast('Referral dashboard will be available after backend setup.');
+    if (tab === 'earn') toast('Free mode: submit Daily Bonus or task claims for admin review. Coins are not added until approved.');
+    if (tab === 'home') window.scrollTo({top: 0, behavior: 'smooth'});
+    if (tab === 'profile') $('profileSection').scrollIntoView({behavior: 'smooth', block: 'start'});
+  };
+});
+
+ensureUser().catch(err => {
+  console.error('CashBee initialization failed:', err);
+  $('userPill').textContent = 'Offline';
+  $('securityNotice').textContent = 'Could not connect to Firebase. Check internet, Firebase Authentication (Anonymous provider), and Firestore rules.';
+  toast('Firebase connection failed. Check settings.');
+});
+</script>
+</body>
+</html>
