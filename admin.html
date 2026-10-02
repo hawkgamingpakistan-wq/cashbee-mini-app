@@ -1,23 +1,256 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CashBee Admin</title>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<style>:root{--gold:#f6b800;--bg:#faf7ee;--ink:#111;--muted:#6b6b6b;--line:#e8dfca;--ok:#16834c;--danger:#b72f25}*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial;background:var(--bg);color:var(--ink)}main{max-width:1050px;margin:auto;padding:18px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center}.box{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;margin-top:14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.row{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid #f0eadc}.row:last-child{border-bottom:0}.btn{border:0;background:var(--gold);padding:9px 12px;border-radius:10px;font-weight:900;cursor:pointer}.btn.red{background:#ffe0dc;color:#8e271e}.input{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px}.small{font-size:12px;color:var(--muted)}.pill{display:inline-block;background:#fff5c8;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900}@media(max-width:760px){.grid{grid-template-columns:1fr}}
-</style></head><body><main><div class="top"><div><h1 style="margin:0">CashBee Admin 🐝</h1><div class="small">Manual reward approval and withdrawals</div></div><button class="btn" id="logout">Logout</button></div>
-<section id="loginBox" class="box"><h2>Admin login</h2><input class="input" id="email" placeholder="Admin email"><br><br><input class="input" id="password" type="password" placeholder="Password"><br><br><button class="btn" id="login">Login</button><div class="small" id="loginMsg" style="margin-top:10px"></div></section>
-<section id="panel" style="display:none"><div class="grid"><div class="box"><h2>Legacy Pending Claims</h2><div id="claims">Loading…</div></div><div class="box"><h2>Pending Withdrawals</h2><div id="withdrawals">Loading…</div></div></div><div class="box"><h2>Admin notes</h2><div class="small">Approving a claim adds its coin amount to the user's balance in the same Firestore transaction. Approving a withdrawal deducts the requested coins before marking it paid. This panel assumes the updated Firestore rules are published.</div></div></section></main>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0d12">
+<title>CashBee Admin — Control Center</title>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<style>
+:root{
+  --bg:#080a0f;--panel:#0f1219;--panel2:#141821;--panel3:#1a1f29;--line:#252b36;
+  --text:#f7f8fa;--muted:#8992a1;--gold:#f6b800;--gold2:#ffd45a;--green:#22c55e;
+  --red:#ef5350;--blue:#5da9ff;--shadow:0 14px 40px rgba(0,0,0,.28);--radius:18px;
+}
+*{box-sizing:border-box}html{background:var(--bg);color:var(--text)}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(180deg,#080a0f 0%,#0b0e14 100%);color:var(--text);min-height:100vh}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+.app{min-height:100vh;display:flex}.sidebar{position:fixed;left:0;top:0;bottom:0;width:250px;background:rgba(10,12,17,.96);border-right:1px solid var(--line);padding:18px 14px;z-index:30;backdrop-filter:blur(16px)}
+.brand{display:flex;align-items:center;gap:10px;padding:8px 10px 18px}.bee{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(145deg,#ffd85c,#e5a900);color:#111;font-size:24px;box-shadow:0 8px 24px rgba(246,184,0,.18)}.brand b{font-size:18px}.brand small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.nav{display:grid;gap:6px;margin-top:10px}.nav button{width:100%;text-align:left;border:1px solid transparent;background:transparent;color:#aeb6c2;padding:11px 12px;border-radius:12px;font-weight:800;display:flex;gap:11px;align-items:center}.nav button:hover{background:#131720;color:#fff}.nav button.active{background:rgba(246,184,0,.13);border-color:rgba(246,184,0,.24);color:#fff}.nav .ico{width:24px;text-align:center}
+.side-bottom{position:absolute;left:14px;right:14px;bottom:16px}.admin-mini{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:11px}.admin-mini .email{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.status{display:flex;gap:7px;align-items:center;color:#9ba4b2;font-size:11px;margin-top:6px}.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(34,197,94,.1)}
+.main{width:100%;margin-left:250px;padding:20px 20px 100px}.topbar{display:flex;justify-content:space-between;align-items:center;gap:14px;position:sticky;top:0;z-index:20;padding:8px 0 16px;background:linear-gradient(180deg,#080a0f 70%,rgba(8,10,15,0));backdrop-filter:blur(8px)}.top-title h1{margin:0;font-size:24px}.top-title p{margin:4px 0 0;color:var(--muted);font-size:12px}.top-actions{display:flex;align-items:center;gap:8px}.mobile-menu{display:none}
+.btn{border:1px solid var(--line);background:#151a23;color:#fff;padding:10px 13px;border-radius:11px;font-weight:850}.btn:hover{filter:brightness(1.08)}.btn.gold{background:linear-gradient(135deg,#ffd34e,#e6a900);border-color:#e5ae16;color:#111}.btn.danger{background:rgba(239,83,80,.1);border-color:rgba(239,83,80,.35);color:#ffaaa7}.btn.success{background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:#8df0ac}.btn.ghost{background:transparent}.btn:disabled{opacity:.5;cursor:not-allowed}
+.page{display:none}.page.active{display:block}.grid{display:grid;gap:14px}.grid.stats{grid-template-columns:repeat(4,minmax(0,1fr))}.grid.two{grid-template-columns:1.35fr .65fr}.card{background:linear-gradient(180deg,#11151d,#0e1219);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}.card h3{margin:0 0 6px;font-size:14px}.stat-label{color:var(--muted);font-size:11px}.stat-value{font-size:28px;font-weight:900;margin-top:6px}.stat-foot{font-size:11px;color:#757f8e;margin-top:5px}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:18px 0 10px}.section-head h2{font-size:16px;margin:0}.muted{color:var(--muted)}.small{font-size:12px}.tiny{font-size:10px}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px}.table{width:100%;border-collapse:collapse;min-width:700px}.table th,.table td{padding:12px 10px;border-bottom:1px solid #202631;text-align:left;font-size:12px}.table th{color:#808a99;font-size:10px;text-transform:uppercase;letter-spacing:.08em;background:#11151d}.table tr:last-child td{border-bottom:0}.table tr:hover td{background:#121720}
+.searchbar{display:flex;gap:8px;align-items:center;margin-bottom:12px}.input,.select,.textarea{width:100%;background:#0b0f15;border:1px solid var(--line);color:#fff;padding:11px 12px;border-radius:11px;outline:none}.input:focus,.select:focus,.textarea:focus{border-color:rgba(246,184,0,.6);box-shadow:0 0 0 3px rgba(246,184,0,.08)}.textarea{min-height:110px;resize:vertical}
+.pill{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;font-size:10px;font-weight:900;border:1px solid var(--line)}.pill.gold{background:rgba(246,184,0,.12);color:#ffd75d;border-color:rgba(246,184,0,.28)}.pill.green{background:rgba(34,197,94,.1);color:#86eda4;border-color:rgba(34,197,94,.24)}.pill.red{background:rgba(239,83,80,.1);color:#ffaca8;border-color:rgba(239,83,80,.25)}.pill.blue{background:rgba(93,169,255,.1);color:#9bcaff;border-color:rgba(93,169,255,.24)}
+.list{display:grid;gap:8px}.item{padding:12px;border:1px solid var(--line);background:#0d1117;border-radius:13px}.item-row{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.item-title{font-weight:850;font-size:13px}.item-meta{color:var(--muted);font-size:11px;line-height:1.45;margin-top:5px}.item-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.empty{padding:30px;text-align:center;color:#6f7887;border:1px dashed #2a313d;border-radius:13px}
+.kpi-line{display:flex;gap:10px;align-items:center}.kpi-icon{width:38px;height:38px;border-radius:12px;background:#171c25;display:grid;place-items:center}.activity{max-height:380px;overflow:auto}.activity .item{padding:10px}.activity-time{font-size:10px;color:#677180}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.68);display:none;align-items:flex-end;justify-content:center;z-index:100;padding:12px}.modal-backdrop.show{display:flex}.modal{width:min(900px,100%);max-height:92vh;overflow:auto;background:#0c1016;border:1px solid #2b333f;border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.55)}.modal-head{position:sticky;top:0;background:rgba(12,16,22,.94);backdrop-filter:blur(12px);padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:center;z-index:2}.modal-body{padding:16px}.close{border:1px solid var(--line);background:#141923;color:#fff;border-radius:10px;width:38px;height:38px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.form-group{display:grid;gap:6px}.form-group.full{grid-column:1/-1}.form-group label{font-size:10px;color:#828c9b;text-transform:uppercase;letter-spacing:.08em}.balance{font-size:32px;font-weight:950;color:#ffd457}.divider{height:1px;background:var(--line);margin:16px 0}
+.toast{position:fixed;right:16px;bottom:16px;z-index:150;background:#171c24;color:#fff;border:1px solid #303845;padding:12px 14px;border-radius:12px;box-shadow:var(--shadow);display:none;max-width:360px;font-size:12px}.toast.show{display:block}.toast.ok{border-color:rgba(34,197,94,.4)}.toast.err{border-color:rgba(239,83,80,.4)}
+.login{min-height:100vh;display:grid;place-items:center;padding:18px}.login-card{width:min(430px,100%);background:#0d1117;border:1px solid #252c38;border-radius:22px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.4)}.login-brand{display:flex;align-items:center;gap:12px;margin-bottom:20px}.login h1{margin:0;font-size:24px}.login p{margin:5px 0 0;color:var(--muted);font-size:12px}.login-grid{display:grid;gap:10px}.login-grid label{font-size:11px;color:#87909e}.login-grid .btn{width:100%;padding:12px}.login-msg{min-height:18px;color:#ff9d99;font-size:12px}
+.mobile-nav{display:none}
+@media(max-width:980px){.grid.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.two{grid-template-columns:1fr}.sidebar{width:220px}.main{margin-left:220px}}
+@media(max-width:760px){.sidebar{transform:translateX(-105%);transition:.22s;width:250px}.sidebar.open{transform:translateX(0)}.main{margin-left:0;padding:14px 12px 92px}.mobile-menu{display:inline-flex}.topbar{padding-top:0}.top-title h1{font-size:20px}.grid.stats{grid-template-columns:1fr 1fr}.mobile-nav{position:fixed;left:10px;right:10px;bottom:10px;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:7px;background:rgba(13,17,23,.96);border:1px solid #2a313d;border-radius:17px;z-index:40;backdrop-filter:blur(18px);box-shadow:0 12px 40px rgba(0,0,0,.45)}.mobile-nav button{border:0;background:transparent;color:#7e8795;padding:7px 2px;font-size:9px;font-weight:850;border-radius:10px}.mobile-nav button.active{color:#ffd95d;background:rgba(246,184,0,.1)}.mobile-nav .mico{font-size:16px;display:block;margin-bottom:3px}.top-actions .email-top{display:none}.form-grid{grid-template-columns:1fr}.form-group.full{grid-column:auto}.modal-backdrop{align-items:flex-end;padding:0}.modal{border-radius:20px 20px 0 0;max-height:94vh}}
+</style>
+</head>
+<body>
+<div id="loginView" class="login">
+  <div class="login-card">
+    <div class="login-brand"><div class="bee">🐝</div><div><h1>CashBee Admin</h1><p>Premium Control Center</p></div></div>
+    <div class="login-grid">
+      <label>Email</label><input id="email" class="input" type="email" autocomplete="username" placeholder="Admin email">
+      <label>Password</label><input id="password" class="input" type="password" autocomplete="current-password" placeholder="Password">
+      <button id="loginBtn" class="btn gold">Sign in</button>
+      <button id="resetBtn" class="btn ghost">Send password reset email</button>
+      <div id="loginMsg" class="login-msg"></div>
+    </div>
+  </div>
+</div>
+
+<div id="appView" class="app" style="display:none">
+  <aside id="sidebar" class="sidebar">
+    <div class="brand"><div class="bee">🐝</div><div><b>CashBee</b><small>Admin Control Center</small></div></div>
+    <nav class="nav" id="nav">
+      <button class="active" data-page="overview"><span class="ico">⌂</span>Overview</button>
+      <button data-page="users"><span class="ico">👥</span>Users</button>
+      <button data-page="withdrawals"><span class="ico">💸</span>Withdrawals</button>
+      <button data-page="claims"><span class="ico">🎁</span>Claims</button>
+      <button data-page="referrals"><span class="ico">🤝</span>Referrals</button>
+      <button data-page="settings"><span class="ico">⚙️</span>Settings</button>
+      <button data-page="logs"><span class="ico">🛡️</span>Admin Logs</button>
+    </nav>
+    <div class="side-bottom"><div class="admin-mini"><div class="email" id="sideEmail">—</div><div class="status"><span class="dot"></span>Authenticated admin</div></div></div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="top-title"><button id="menuBtn" class="btn ghost mobile-menu">☰</button> <h1 id="pageTitle" style="display:inline">Overview</h1><p id="pageSub">Live snapshot of your CashBee operation</p></div>
+      <div class="top-actions"><span class="small muted email-top" id="topEmail">—</span><button id="refreshBtn" class="btn">↻ Refresh</button><button id="logoutBtn" class="btn danger">Logout</button></div>
+    </div>
+
+    <section id="page-overview" class="page active">
+      <div class="grid stats">
+        <div class="card"><div class="stat-label">Users loaded</div><div id="statUsers" class="stat-value">—</div><div class="stat-foot">Latest 200 users</div></div>
+        <div class="card"><div class="stat-label">Coins in loaded users</div><div id="statCoins" class="stat-value">—</div><div class="stat-foot">Sum of loaded balances</div></div>
+        <div class="card"><div class="stat-label">Pending withdrawals</div><div id="statWithdrawals" class="stat-value">—</div><div class="stat-foot">Needs admin action</div></div>
+        <div class="card"><div class="stat-label">Pending claims</div><div id="statClaims" class="stat-value">—</div><div class="stat-foot">Legacy / manual claims</div></div>
+      </div>
+      <div class="grid two" style="margin-top:14px">
+        <div class="card"><div class="section-head"><h2>Recent withdrawals</h2><button class="btn" data-go="withdrawals">Open all</button></div><div id="overviewWithdrawals" class="list"></div></div>
+        <div class="card"><div class="section-head"><h2>Admin activity</h2><button class="btn" data-go="logs">View logs</button></div><div id="overviewLogs" class="activity list"></div></div>
+      </div>
+      <div class="card" style="margin-top:14px"><div class="section-head"><h2>System notes</h2><span class="pill blue">Safe mode</span></div><div class="small muted">This upgraded panel preserves the current Firebase collections used by CashBee. New settings are stored separately so existing user data is not restructured.</div></div>
+    </section>
+
+    <section id="page-users" class="page">
+      <div class="card"><div class="section-head"><h2>User Management</h2><button id="loadUsersBtn" class="btn">Load latest</button></div><div class="searchbar"><input id="userSearch" class="input" placeholder="Search loaded users by UID, name, email or referral count"><button id="searchUidBtn" class="btn gold">Find UID</button></div><div id="usersTable" class="table-wrap"></div></div>
+    </section>
+
+    <section id="page-withdrawals" class="page">
+      <div class="card"><div class="section-head"><h2>Withdrawal Queue</h2><span class="pill gold">Pending only</span></div><div id="withdrawalList" class="list"></div></div>
+    </section>
+
+    <section id="page-claims" class="page">
+      <div class="card"><div class="section-head"><h2>Legacy Reward Claims</h2><span class="pill blue">Pending only</span></div><div id="claimList" class="list"></div></div>
+    </section>
+
+    <section id="page-referrals" class="page">
+      <div class="card"><div class="section-head"><h2>Referral Overview</h2><button id="loadReferralsBtn" class="btn">Load latest</button></div><div id="referralSummary" class="grid stats" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:14px"></div><div id="referralsTable" class="table-wrap"></div></div>
+    </section>
+
+    <section id="page-settings" class="page">
+      <div class="grid two">
+        <div class="card">
+          <div class="section-head"><h2>Reward & App Settings</h2><span class="pill gold">Stored in settings/app</span></div>
+          <div class="form-grid">
+            <div class="form-group"><label>Daily check-in coins</label><input id="setCheckin" class="input" type="number" min="0"></div>
+            <div class="form-group"><label>Daily ad coins</label><input id="setAd" class="input" type="number" min="0"></div>
+            <div class="form-group"><label>Referral percentage</label><input id="setReferral" class="input" type="number" min="0" max="100" step="0.1"></div>
+            <div class="form-group"><label>Minimum withdrawal coins</label><input id="setMinWithdraw" class="input" type="number" min="0"></div>
+            <div class="form-group full"><label>Announcement</label><textarea id="setAnnouncement" class="textarea" placeholder="Optional app announcement"></textarea></div>
+            <div class="form-group full"><label>Maintenance mode</label><select id="setMaintenance" class="select"><option value="false">OFF — app normal</option><option value="true">ON — maintenance</option></select></div>
+          </div>
+          <div style="margin-top:12px;display:flex;justify-content:flex-end"><button id="saveSettingsBtn" class="btn gold">Save settings</button></div>
+          <div class="small muted" style="margin-top:10px">Saving these values does not automatically change hard-coded values in the existing user app. The user app must read <b>settings/app</b> for these settings to become live.</div>
+        </div>
+        <div class="card"><div class="section-head"><h2>Admin Account</h2><span class="pill green">Verified</span></div><div class="small muted">Signed in as</div><div id="accountEmail" style="font-weight:900;margin-top:4px">—</div><div class="divider"></div><button id="accountResetBtn" class="btn">Send password reset</button><div class="small muted" style="margin-top:10px">Admin role is verified against <b>admins/{uid}</b> in Firestore.</div></div>
+      </div>
+    </section>
+
+    <section id="page-logs" class="page">
+      <div class="card"><div class="section-head"><h2>Admin Activity Logs</h2><button id="loadLogsBtn" class="btn">Refresh</button></div><div id="logsList" class="activity list"></div></div>
+    </section>
+  </main>
+
+  <div id="mobileNav" class="mobile-nav">
+    <button class="active" data-page="overview"><span class="mico">⌂</span>Home</button>
+    <button data-page="users"><span class="mico">👥</span>Users</button>
+    <button data-page="withdrawals"><span class="mico">💸</span>Pay</button>
+    <button data-page="claims"><span class="mico">🎁</span>Claims</button>
+    <button data-page="settings"><span class="mico">⚙️</span>Settings</button>
+  </div>
+</div>
+
+<div id="userModal" class="modal-backdrop"><div class="modal"><div class="modal-head"><div><div id="modalUserTitle" style="font-weight:950">User</div><div id="modalUserSubtitle" class="small muted">—</div></div><button class="close" data-close="userModal">×</button></div><div id="userModalBody" class="modal-body"></div></div></div>
+<div id="confirmModal" class="modal-backdrop"><div class="modal" style="max-width:520px"><div class="modal-head"><div><div id="confirmTitle" style="font-weight:950">Confirm action</div><div id="confirmSubtitle" class="small muted">Please review.</div></div><button class="close" data-close="confirmModal">×</button></div><div class="modal-body"><div id="confirmBody" class="small" style="line-height:1.6"></div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px"><button class="btn" data-close="confirmModal">Cancel</button><button id="confirmYes" class="btn gold">Confirm</button></div></div></div></div>
+<div id="toast" class="toast"></div>
+
 <script>
 'use strict';
-const cfg={apiKey:'AIzaSyCjXbCgARUdUhQSXZcwfQ8pBrb-c5706rg',authDomain:'cashbee-18fda.firebaseapp.com',projectId:'cashbee-18fda',storageBucket:'cashbee-18fda.firebasestorage.app',messagingSenderId:'571973453825',appId:'1:571973453825:web:01784ea53890893a619800',measurementId:'G-EKKJBYLSDN'};if(!firebase.apps.length)firebase.initializeApp(cfg);const auth=firebase.auth(),db=firebase.firestore();
-const $=id=>document.getElementById(id);const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-let adminUid=null,claimUnsub=null,withdrawUnsub=null;
-async function ensureAdmin(user){const s=await db.collection('admins').doc(user.uid).get();if(!s.exists||s.data().active!==true||s.data().role!=='admin')throw new Error('This account is not an active CashBee admin.');adminUid=user.uid}
-async function login(){ $('loginMsg').textContent='Signing in…';try{const c=await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);await ensureAdmin(c.user);showPanel()}catch(e){console.error(e);$('loginMsg').textContent=e.message||'Login failed.'}}
-function showPanel(){$('loginBox').style.display='none';$('panel').style.display='block';listenClaims();listenWithdrawals()}
-function listenClaims(){claimUnsub?.();claimUnsub=db.collection('claims').where('status','==','pending').limit(100).onSnapshot(s=>{$('claims').innerHTML=s.empty?'<div class="small">No pending claims.</div>':s.docs.map(d=>{const x=d.data();return `<div class="row"><div><b>${esc(x.type)} · +${esc(x.amount)} coins</b><div class="small">User: ${esc(x.userId)}<br>${esc(x.date||'')}</div></div><div><button class="btn" onclick="approveClaim('${d.id}',${Number(x.amount||0)},'${esc(x.userId)}')">Approve</button><button class="btn red" onclick="rejectClaim('${d.id}')" style="margin-left:5px">Reject</button></div></div>`}).join('')},e=>{$('claims').innerHTML='<div class="small">Could not load claims. Publish the updated rules and create any needed index.</div>';console.error(e)})}
-function listenWithdrawals(){withdrawUnsub?.();withdrawUnsub=db.collection('withdrawals').where('status','==','pending').limit(100).onSnapshot(s=>{$('withdrawals').innerHTML=s.empty?'<div class="small">No pending withdrawals.</div>':s.docs.map(d=>{const x=d.data();return `<div class="row"><div><b>$${Number(x.amount||0).toFixed(2)} · ${esc(x.method)}</b><div class="small">User: ${esc(x.userId)}<br>Details: ${esc(x.details)}</div></div><div><button class="btn" onclick="approveWithdrawal('${d.id}',${Number(x.coinCost||0)},'${esc(x.userId)}')">Mark Paid</button><button class="btn red" onclick="rejectWithdrawal('${d.id}')" style="margin-left:5px">Reject</button></div></div>`}).join('')},e=>{$('withdrawals').innerHTML='<div class="small">Could not load withdrawals. Publish the updated rules and create any needed index.</div>';console.error(e)})}
-window.approveClaim=async(id,amount,userId)=>{try{await db.runTransaction(async tx=>{const cRef=db.collection('claims').doc(id),uRef=db.collection('users').doc(userId);const [c,u]=await Promise.all([tx.get(cRef),tx.get(uRef)]);if(!c.exists||c.data().status!=='pending')throw new Error('Claim is no longer pending.');if(!u.exists)throw new Error('User not found.');tx.update(uRef,{coins:Number(u.data().coins||0)+Number(amount),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});tx.update(cRef,{status:'approved',approvedAt:firebase.firestore.FieldValue.serverTimestamp(),approvedBy:adminUid})});}catch(e){alert(e.message||'Approval failed.')}};
-window.rejectClaim=async(id)=>{try{await db.collection('claims').doc(id).update({status:'rejected',approvedAt:firebase.firestore.FieldValue.serverTimestamp(),approvedBy:adminUid})}catch(e){alert(e.message||'Reject failed.')}};
-window.approveWithdrawal=async(id,cost,userId)=>{try{await db.runTransaction(async tx=>{const wRef=db.collection('withdrawals').doc(id),uRef=db.collection('users').doc(userId);const [w,u]=await Promise.all([tx.get(wRef),tx.get(uRef)]);if(!w.exists||w.data().status!=='pending')throw new Error('Withdrawal is no longer pending.');const coins=Number(u.data().coins||0);if(coins<Number(cost))throw new Error('User no longer has enough coins.');tx.update(uRef,{coins:coins-Number(cost),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});tx.update(wRef,{status:'paid',paidAt:firebase.firestore.FieldValue.serverTimestamp(),paidBy:adminUid})});}catch(e){alert(e.message||'Payment update failed.')}};
-window.rejectWithdrawal=async(id)=>{try{await db.collection('withdrawals').doc(id).update({status:'rejected',rejectedAt:firebase.firestore.FieldValue.serverTimestamp(),rejectedBy:adminUid})}catch(e){alert(e.message||'Reject failed.')}};
-$('login').onclick=login;$('logout').onclick=()=>auth.signOut();auth.onAuthStateChanged(async u=>{if(!u){$('loginBox').style.display='block';$('panel').style.display='none';return}try{await ensureAdmin(u);showPanel()}catch(e){$('loginBox').style.display='block';$('panel').style.display='none';$('loginMsg').textContent=e.message;auth.signOut()}});
-</script></body></html>
+const cfg={apiKey:'AIzaSyCjXbCgARUdUhQSXZcwfQ8pBrb-c5706rg',authDomain:'cashbee-18fda.firebaseapp.com',projectId:'cashbee-18fda',storageBucket:'cashbee-18fda.firebasestorage.app',messagingSenderId:'571973453825',appId:'1:571973453825:web:01784ea53890893a619800',measurementId:'G-EKKJBYLSDN'};
+if(!firebase.apps.length)firebase.initializeApp(cfg);
+const auth=firebase.auth(),db=firebase.firestore();
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const fmt=n=>new Intl.NumberFormat('en-IN').format(Number(n||0));
+const money=n=>Number(n||0).toFixed(2);
+const timeOf=v=>{if(!v)return '—';try{const d=v.toDate?v.toDate():new Date(v);return isNaN(d)?'—':d.toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});}catch(_){return '—'}};
+let adminUid=null,adminEmail=null,adminData=null,currentPage='overview',confirmHandler=null;
+let usersCache=[],withdrawalsCache=[],claimsCache=[],referralsCache=[];
+const defaults={checkinReward:50,adReward:250,referralPercent:10,minWithdrawalCoins:0,announcement:'',maintenance:false};
+
+function toast(msg,type='ok'){const t=$('toast');t.textContent=msg;t.className='toast show '+(type==='err'?'err':'ok');clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.className='toast',3200)}
+function setLoginMsg(msg){$('loginMsg').textContent=msg||''}
+function isActiveAdmin(){return !!adminUid&&adminData&&adminData.role==='admin'&&adminData.active===true}
+async function ensureAdmin(user){const s=await db.collection('admins').doc(user.uid).get();if(!s.exists)throw new Error('Admin record not found.');const d=s.data()||{};if(d.active!==true||d.role!=='admin')throw new Error('This account is not an active CashBee admin.');adminUid=user.uid;adminEmail=user.email||'—';adminData=d;}
+function pageMeta(p){return {overview:['Overview','Live snapshot of your CashBee operation'],users:['Users','Search, inspect and safely adjust user balances'],withdrawals:['Withdrawals','Review, pay or reject pending requests'],claims:['Claims','Approve or reject legacy reward claims'],referrals:['Referrals','Inspect referral activity and counts'],settings:['Settings','Control values stored in the app configuration'],logs:['Admin Logs','Track privileged actions made from this panel']}[p]||['Overview','Live snapshot']} 
+function go(p){currentPage=p;document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$('page-'+p)?.classList.add('active');document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===p));const m=pageMeta(p);$('pageTitle').textContent=m[0];$('pageSub').textContent=m[1];$('sidebar').classList.remove('open');if(p==='users')loadUsers();if(p==='referrals')loadReferrals();if(p==='settings')loadSettings();if(p==='logs')loadLogs();}
+function wireNav(){document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.page)));document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));}
+
+function showApp(){ $('loginView').style.display='none'; $('appView').style.display='flex'; $('sideEmail').textContent=adminEmail; $('topEmail').textContent=adminEmail; $('accountEmail').textContent=adminEmail; go('overview'); refreshAll(); }
+function showLogin(){ $('appView').style.display='none'; $('loginView').style.display='grid'; }
+
+async function login(){setLoginMsg('Signing in…');$('loginBtn').disabled=true;try{const c=await auth.signInWithEmailAndPassword($('email').value.trim(),$('password').value);await ensureAdmin(c.user);showApp();}catch(e){console.error(e);setLoginMsg(e.message||'Login failed.')}finally{$('loginBtn').disabled=false}}
+async function resetPassword(){const email=($('email').value.trim()||adminEmail||'');if(!email){setLoginMsg('Enter your admin email first.');return}try{await auth.sendPasswordResetEmail(email);toast('Password reset email sent.')}catch(e){setLoginMsg(e.message||'Could not send reset email.','err')}}
+async function logout(){try{await auth.signOut()}catch(e){console.error(e)}}
+
+async function refreshAll(){try{await Promise.all([loadUsers(),loadPendingWithdrawals(),loadPendingClaims(),loadOverviewLogs()]);}catch(e){console.error(e);toast('Some dashboard data could not be loaded. Check Firestore rules.','err')}}
+
+async function loadUsers(){
+  const box=$('usersTable');
+  box.innerHTML='<div class="empty">Loading users…</div>';
+  try{
+    const s=await db.collection('users').limit(200).get();
+    usersCache=s.docs.map(d=>({id:d.id,...d.data()}));
+    usersCache.sort((a,b)=>(b.updatedAt?.toMillis?.()||0)-(a.updatedAt?.toMillis?.()||0));
+    $('statUsers').textContent=fmt(usersCache.length)+(s.size===200?'+':'');
+    $('statCoins').textContent=fmt(usersCache.reduce((sum,u)=>sum+Number(u.coins||0),0));
+    renderUsers();
+  }catch(e){console.error(e);box.innerHTML='<div class="empty">Could not load users. Publish the admin-safe Firestore rules and try again.</div>'}
+}
+function renderUsers(){
+  const q=$('userSearch').value.trim().toLowerCase();
+  const list=usersCache.filter(u=>!q||[u.id,u.name,u.displayName,u.email,u.referralCount].some(v=>String(v??'').toLowerCase().includes(q)));
+  if(!list.length){$('usersTable').innerHTML='<div class="empty">No matching users in the loaded set.</div>';return}
+  $('usersTable').innerHTML='<table class="table"><thead><tr><th>User</th><th>Coins</th><th>Referrals</th><th>Updated</th><th></th></tr></thead><tbody>'+list.map(u=>`<tr><td><b>${esc(u.displayName||u.name||'User')}</b><div class="tiny muted">${esc(u.id)}</div></td><td><span class="pill gold">${fmt(u.coins)}</span></td><td>${fmt(u.referralCount)}</td><td>${esc(timeOf(u.updatedAt||u.createdAt))}</td><td><button class="btn" data-open-user="${esc(u.id)}">Manage</button></td></tr>`).join('')+'</tbody></table>';
+  document.querySelectorAll('[data-open-user]').forEach(b=>b.addEventListener('click',()=>openUser(b.dataset.openUser)));
+}
+async function searchUid(){const id=$('userSearch').value.trim();if(!id){toast('Enter a UID to find.','err');return}try{const d=await db.collection('users').doc(id).get();if(!d.exists){toast('User UID not found.','err');return}openUser(id)}catch(e){toast(e.message||'Could not find user.','err')}}
+
+async function openUser(uid){
+  $('modalUserTitle').textContent='Loading user…';$('modalUserSubtitle').textContent=uid;$('userModalBody').innerHTML='<div class="empty">Loading profile…</div>';$('userModal').classList.add('show');
+  try{
+    const [u,refsOut,refsIn,events,acts]=await Promise.all([
+      db.collection('users').doc(uid).get(),
+      db.collection('referrals').where('referrerId','==',uid).limit(50).get(),
+      db.collection('referrals').where('referredUserId','==',uid).limit(50).get(),
+      db.collection('rewardEvents').where('userId','==',uid).limit(30).get(),
+      db.collection('activity').where('userId','==',uid).limit(30).get()
+    ]);
+    if(!u.exists){throw new Error('User not found.')}const x=u.data()||{};
+    $('modalUserTitle').textContent=x.displayName||x.name||'CashBee User';$('modalUserSubtitle').textContent=uid;
+    const refs=[...refsOut.docs.map(d=>({id:d.id,dir:'Invited',...d.data()})),...refsIn.docs.map(d=>({id:d.id,dir:'Referred by',...d.data()}))];
+    const ev=events.docs.map(d=>d.data()).sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0)).slice(0,20);
+    const ac=acts.docs.map(d=>d.data()).sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0)).slice(0,20);
+    $('userModalBody').innerHTML=`
+      <div class="grid two"><div class="card"><div class="small muted">Current balance</div><div class="balance">${fmt(x.coins)}</div><div class="small muted">Referral count: ${fmt(x.referralCount)}</div></div><div class="card"><div class="small muted">Profile</div><div style="margin-top:7px"><b>${esc(x.displayName||x.name||'User')}</b><div class="small muted">${esc(x.email||'No email')}</div><div class="small muted">Created: ${esc(timeOf(x.createdAt))}</div></div></div></div>
+      <div class="card" style="margin-top:12px"><div class="section-head"><h3>Coin adjustment</h3><span class="pill blue">Admin action</span></div><div class="form-grid"><div class="form-group"><label>Amount (+ or -)</label><input id="adjustAmount" class="input" type="number" step="1" placeholder="e.g. 100 or -50"></div><div class="form-group"><label>Reason</label><input id="adjustReason" class="input" placeholder="Support / correction / bonus"></div></div><div style="display:flex;justify-content:flex-end;margin-top:10px"><button id="adjustBtn" class="btn gold">Apply adjustment</button></div></div>
+      <div class="card" style="margin-top:12px"><div class="section-head"><h3>Referral links</h3><span class="pill">${refs.length}</span></div>${refs.length?'<div class="list">'+refs.slice(0,20).map(r=>`<div class="item"><div class="item-title">${esc(r.dir)}</div><div class="item-meta">${esc(r.referredUserId||r.referrerId||'—')} · ${esc(r.status||'')} · ${esc(timeOf(r.createdAt))}</div></div>`).join('')+'</div>':'<div class="empty">No referral records found.</div>'}</div>
+      <div class="card" style="margin-top:12px"><div class="section-head"><h3>Recent reward events</h3><span class="pill gold">${ev.length}</span></div>${ev.length?'<div class="list">'+ev.map(r=>`<div class="item"><div class="item-title">${esc(r.type||'Reward')} · +${fmt(r.amount||0)} coins</div><div class="item-meta">${esc(timeOf(r.createdAt||r.date))}</div></div>`).join('')+'</div>':'<div class="empty">No reward events found.</div>'}</div>
+      <div class="card" style="margin-top:12px"><div class="section-head"><h3>Recent activity</h3><span class="pill blue">${ac.length}</span></div>${ac.length?'<div class="list">'+ac.map(r=>`<div class="item"><div class="item-title">${esc(r.type||'Activity')}</div><div class="item-meta">${esc(r.message||r.action||'')} · ${esc(timeOf(r.createdAt))}</div></div>`).join('')+'</div>':'<div class="empty">No activity records found.</div>'}</div>
+    `;
+    $('adjustBtn').onclick=()=>adjustCoins(uid);
+  }catch(e){console.error(e);$('userModalBody').innerHTML=`<div class="empty">${esc(e.message||'Could not load user details.')}</div>`}
+}
+async function adjustCoins(uid){const amount=Number($('adjustAmount').value);const reason=$('adjustReason').value.trim();if(!Number.isFinite(amount)||amount===0){toast('Enter a non-zero amount.','err');return}if(!reason){toast('Add a reason for the balance change.','err');return}showConfirm('Adjust user balance','This creates a logged admin action and changes the user balance in a Firestore transaction.',async()=>{
+  const uRef=db.collection('users').doc(uid),logRef=db.collection('adminLogs').doc();
+  await db.runTransaction(async tx=>{const u=await tx.get(uRef);if(!u.exists)throw new Error('User not found.');const before=Number(u.data().coins||0),after=before+amount;if(after<0)throw new Error('Balance cannot go below 0.');tx.update(uRef,{coins:after,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});tx.set(logRef,{action:'coin_adjustment',targetUserId:uid,delta:amount,before,after,reason,adminUid,adminEmail,createdAt:firebase.firestore.FieldValue.serverTimestamp()})});toast('Balance updated and logged.');openUser(uid);loadUsers();loadLogs();
+})}
+
+async function loadPendingWithdrawals(){
+  try{const s=await db.collection('withdrawals').where('status','==','pending').limit(100).get();withdrawalsCache=s.docs.map(d=>({id:d.id,...d.data()}));withdrawalsCache.sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0));$('statWithdrawals').textContent=fmt(withdrawalsCache.length);renderWithdrawals();renderOverviewWithdrawals();}catch(e){console.error(e);$('withdrawalList').innerHTML='<div class="empty">Could not load withdrawals. Check rules.</div>'}}
+function renderWithdrawals(){const el=$('withdrawalList');if(!withdrawalsCache.length){el.innerHTML='<div class="empty">No pending withdrawals.</div>';return}el.innerHTML=withdrawalsCache.map(w=>`<div class="item"><div class="item-row"><div><div class="item-title">${esc(w.method||'UPI')} · ₹${money(w.amount)}</div><div class="item-meta">User: ${esc(w.userId)}<br>Coin cost: ${fmt(w.coinCost)}<br>Details: ${esc(w.details||'—')}<br>Created: ${esc(timeOf(w.createdAt))}</div></div><div class="item-actions"><button class="btn success" data-pay="${w.id}">Mark Paid</button><button class="btn danger" data-reject-w="${w.id}">Reject + Refund</button></div></div></div>`).join('');document.querySelectorAll('[data-pay]').forEach(b=>b.onclick=()=>approveWithdrawal(b.dataset.pay));document.querySelectorAll('[data-reject-w]').forEach(b=>b.onclick=()=>rejectWithdrawal(b.dataset.rejectW))}
+function renderOverviewWithdrawals(){const el=$('overviewWithdrawals');if(!withdrawalsCache.length){el.innerHTML='<div class="empty">No pending withdrawals.</div>';return}el.innerHTML=withdrawalsCache.slice(0,4).map(w=>`<div class="item"><div class="item-row"><div><div class="item-title">₹${money(w.amount)} · ${esc(w.method||'UPI')}</div><div class="item-meta">${esc(w.userId)} · ${esc(timeOf(w.createdAt))}</div></div><button class="btn" data-pay-small="${w.id}">Review</button></div></div>`).join('');document.querySelectorAll('[data-pay-small]').forEach(b=>b.onclick=()=>{go('withdrawals')})}
+async function approveWithdrawal(id){showConfirm('Mark withdrawal as paid','The current CashBee user flow deducts coinCost when the withdrawal is created. This action only marks the pending withdrawal as paid; it does not deduct coins a second time.',async()=>{const wRef=db.collection('withdrawals').doc(id),logRef=db.collection('adminLogs').doc();await db.runTransaction(async tx=>{const w=await tx.get(wRef);if(!w.exists||w.data().status!=='pending')throw new Error('Withdrawal is no longer pending.');tx.update(wRef,{status:'paid',paidAt:firebase.firestore.FieldValue.serverTimestamp(),paidBy:adminUid});tx.set(logRef,{action:'withdrawal_paid',withdrawalId:id,targetUserId:w.data().userId,coinCost:Number(w.data().coinCost||0),adminUid,adminEmail,createdAt:firebase.firestore.FieldValue.serverTimestamp()})});toast('Withdrawal marked as paid.');loadPendingWithdrawals();loadLogs();})}
+async function rejectWithdrawal(id){const w=withdrawalsCache.find(x=>x.id===id);showConfirm('Reject and refund withdrawal',`Refund ${fmt(w?.coinCost)} coins to the user, because the current CashBee request flow deducts the coins when the withdrawal is created.`,async()=>{const wRef=db.collection('withdrawals').doc(id),uRef=db.collection('users').doc(w?.userId),logRef=db.collection('adminLogs').doc();await db.runTransaction(async tx=>{const wr=await tx.get(wRef);if(!wr.exists||wr.data().status!=='pending')throw new Error('Withdrawal is no longer pending.');const ur=await tx.get(uRef);if(!ur.exists)throw new Error('User not found.');const refund=Math.max(0,Number(wr.data().coinCost||0));const before=Number(ur.data().coins||0),after=before+refund;tx.update(uRef,{coins:after,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});tx.update(wRef,{status:'rejected',rejectedAt:firebase.firestore.FieldValue.serverTimestamp(),rejectedBy:adminUid,refundCoins:refund});tx.set(logRef,{action:'withdrawal_rejected_refunded',withdrawalId:id,targetUserId:wr.data().userId,refundCoins:refund,before,after,adminUid,adminEmail,createdAt:firebase.firestore.FieldValue.serverTimestamp()})});toast('Withdrawal rejected and coins refunded.');loadPendingWithdrawals();loadUsers();loadLogs();})}
+
+async function loadPendingClaims(){try{const s=await db.collection('claims').where('status','==','pending').limit(100).get();claimsCache=s.docs.map(d=>({id:d.id,...d.data()}));claimsCache.sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0));$('statClaims').textContent=fmt(claimsCache.length);renderClaims();}catch(e){console.error(e);$('claimList').innerHTML='<div class="empty">Could not load claims. Check rules.</div>'}}
+function renderClaims(){const el=$('claimList');if(!claimsCache.length){el.innerHTML='<div class="empty">No pending claims.</div>';return}el.innerHTML=claimsCache.map(c=>`<div class="item"><div class="item-row"><div><div class="item-title">${esc(c.type||'Reward')} · +${fmt(c.amount)} coins</div><div class="item-meta">User: ${esc(c.userId)}<br>${esc(c.date||'')}<br>Created: ${esc(timeOf(c.createdAt))}</div></div><div class="item-actions"><button class="btn success" data-approve-c="${c.id}">Approve</button><button class="btn danger" data-reject-c="${c.id}">Reject</button></div></div></div>`).join('');document.querySelectorAll('[data-approve-c]').forEach(b=>b.onclick=()=>approveClaim(b.dataset.approveC));document.querySelectorAll('[data-reject-c]').forEach(b=>b.onclick=()=>rejectClaim(b.dataset.rejectC))}
+async function approveClaim(id){const c=claimsCache.find(x=>x.id===id);showConfirm('Approve reward claim',`Add ${fmt(c?.amount)} coins to ${c?.userId||'user'} and mark the claim approved.`,async()=>{const cRef=db.collection('claims').doc(id),uRef=db.collection('users').doc(c?.userId),logRef=db.collection('adminLogs').doc();await db.runTransaction(async tx=>{const cr=await tx.get(cRef);if(!cr.exists||cr.data().status!=='pending')throw new Error('Claim is no longer pending.');const ur=await tx.get(uRef);if(!ur.exists)throw new Error('User not found.');const before=Number(ur.data().coins||0),amount=Number(cr.data().amount||0),after=before+amount;tx.update(uRef,{coins:after,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});tx.update(cRef,{status:'approved',approvedAt:firebase.firestore.FieldValue.serverTimestamp(),approvedBy:adminUid});tx.set(logRef,{action:'claim_approved',claimId:id,targetUserId:cr.data().userId,amount,before,after,adminUid,adminEmail,createdAt:firebase.firestore.FieldValue.serverTimestamp()})});toast('Claim approved.');loadPendingClaims();loadUsers();loadLogs();})}
+async function rejectClaim(id){showConfirm('Reject reward claim','The claim will be marked rejected and no coins will be added.',async()=>{const cRef=db.collection('claims').doc(id),logRef=db.collection('adminLogs').doc();await db.runTransaction(async tx=>{const cr=await tx.get(cRef);if(!cr.exists||cr.data().status!=='pending')throw new Error('Claim is no longer pending.');tx.update(cRef,{status:'rejected',rejectedAt:firebase.firestore.FieldValue.serverTimestamp(),rejectedBy:adminUid});tx.set(logRef,{action:'claim_rejected',claimId:id,targetUserId:cr.data().userId,adminUid,adminEmail,createdAt:firebase.firestore.FieldValue.serverTimestamp()})});toast('Claim rejected.');loadPendingClaims();loadLogs();})}
+
+async function loadReferrals(){const el=$('referralsTable');el.innerHTML='<div class="empty">Loading referral data…</div>';try{const s=await db.collection('referrals').limit(200).get();referralsCache=s.docs.map(d=>({id:d.id,...d.data()}));const active=referralsCache.filter(x=>x.status==='active').length;const referrers=new Set(referralsCache.map(x=>x.referrerId).filter(Boolean)).size;$('referralSummary').innerHTML=`<div class="card"><div class="stat-label">Loaded referrals</div><div class="stat-value">${fmt(referralsCache.length)}${s.size===200?'+':''}</div></div><div class="card"><div class="stat-label">Active</div><div class="stat-value">${fmt(active)}</div></div><div class="card"><div class="stat-label">Unique referrers</div><div class="stat-value">${fmt(referrers)}</div></div>`;el.innerHTML=referralsCache.length?'<table class="table"><thead><tr><th>Referrer</th><th>Referred User</th><th>Status</th><th>Created</th></tr></thead><tbody>'+referralsCache.map(r=>`<tr><td>${esc(r.referrerId)}</td><td>${esc(r.referredUserId)}</td><td><span class="pill ${r.status==='active'?'green':'blue'}">${esc(r.status||'—')}</span></td><td>${esc(timeOf(r.createdAt))}</td></tr>`).join('')+'</tbody></table>':'<div class="empty">No referral records found.</div>'}catch(e){console.error(e);el.innerHTML='<div class="empty">Could not load referrals. Check rules.</div>'}}
+
+async function loadSettings(){try{const s=await db.collection('settings').doc('app').get();const x={...defaults,...(s.exists?s.data():{})};$('setCheckin').value=x.checkinReward;$('setAd').value=x.adReward;$('setReferral').value=x.referralPercent;$('setMinWithdraw').value=x.minWithdrawalCoins;$('setAnnouncement').value=x.announcement||'';$('setMaintenance').value=String(!!x.maintenance);}catch(e){console.error(e);toast('Could not load settings.','err')}}
+async function saveSettings(){const payload={checkinReward:Number($('setCheckin').value||0),adReward:Number($('setAd').value||0),referralPercent:Number($('setReferral').value||0),minWithdrawalCoins:Number($('setMinWithdraw').value||0),announcement:$('setAnnouncement').value.trim(),maintenance:$('setMaintenance').value==='true',updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:adminUid};if(payload.referralPercent<0||payload.referralPercent>100){toast('Referral percentage must be between 0 and 100.','err');return}try{await db.collection('settings').doc('app').set(payload,{merge:true});await db.collection('adminLogs').add({action:'settings_updated',settings:{checkinReward:payload.checkinReward,adReward:payload.adReward,referralPercent:payload.referralPercent,minWithdrawalCoins:payload.minWithdrawalCoins,maintenance:payload.maintenance},adminUid,adminEmail,createdAt:firebase.firestore.FieldValue.serverTimestamp()});toast('Settings saved.');}catch(e){toast(e.message||'Could not save settings.','err')}}
+
+async function loadLogs(){const el=$('logsList');el.innerHTML='<div class="empty">Loading logs…</div>';try{const s=await db.collection('adminLogs').limit(100).get();const rows=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0));renderLogs(rows,el)}catch(e){console.error(e);el.innerHTML='<div class="empty">Could not load admin logs. Publish the admin-only rules.</div>'}}
+async function loadOverviewLogs(){try{const s=await db.collection('adminLogs').limit(8).get();const rows=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0));renderLogs(rows,$('overviewLogs'))}catch(e){$('overviewLogs').innerHTML='<div class="empty">No logs available yet.</div>'}}
+function renderLogs(rows,el){if(!rows.length){el.innerHTML='<div class="empty">No admin activity yet.</div>';return}el.innerHTML=rows.map(r=>`<div class="item"><div class="item-title">${esc(r.action||'admin_action')}</div><div class="item-meta">${esc(r.adminEmail||r.adminUid||'admin')} · ${esc(timeOf(r.createdAt))}<br>${esc(r.reason||r.targetUserId||r.withdrawalId||r.claimId||'')}</div></div>`).join('')}
+
+function showConfirm(title,body,fn){$('confirmTitle').textContent=title;$('confirmBody').textContent=body;$('confirmSubtitle').textContent='Review before committing this privileged action.';confirmHandler=fn;$('confirmModal').classList.add('show')}
+function closeModal(id){$(id).classList.remove('show');if(id==='confirmModal')confirmHandler=null}
+
+$('loginBtn').onclick=login;$('resetBtn').onclick=resetPassword;$('logoutBtn').onclick=logout;$('refreshBtn').onclick=refreshAll;$('loadUsersBtn').onclick=loadUsers;$('searchUidBtn').onclick=searchUid;$('userSearch').addEventListener('input',renderUsers);$('loadReferralsBtn').onclick=loadReferrals;$('saveSettingsBtn').onclick=saveSettings;$('accountResetBtn').onclick=resetPassword;$('loadLogsBtn').onclick=loadLogs;$('menuBtn').onclick=()=>$('sidebar').classList.toggle('open');$('confirmYes').onclick=async()=>{if(!confirmHandler)return;const fn=confirmHandler;closeModal('confirmModal');try{await fn()}catch(e){console.error(e);toast(e.message||'Action failed.','err')}};document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));$('password').addEventListener('keydown',e=>{if(e.key==='Enter')login()});wireNav();
+
+// Close modals by tapping the backdrop.
+document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show')}));
+
+auth.onAuthStateChanged(async user=>{if(!user){adminUid=null;adminData=null;showLogin();return}try{await ensureAdmin(user);showApp()}catch(e){console.error(e);setLoginMsg(e.message||'Not authorized.');await auth.signOut();showLogin()}});
+</script>
+</body>
+</html>
