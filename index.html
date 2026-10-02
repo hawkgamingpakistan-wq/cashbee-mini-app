@@ -41,9 +41,9 @@ button,input,select{font:inherit}button{cursor:pointer}#app{max-width:560px;marg
 
 <div id="tabEarn" class="tabPanel" style="display:none"><section class="section"><h2>Earn Center</h2><div class="stats"><div class="statBox"><small>Approved coins</small><b id="earnApproved">0</b></div><div class="statBox"><small>Pending claims</small><b id="earnPending">0</b></div></div><div class="card" style="margin-top:12px"><div class="task"><div class="icon">🎁</div><div class="grow"><b>Daily Check-in</b><span>50 Coins once per day, added automatically.</span></div><button class="mini" id="earnDailyBtn">Check in</button></div><div class="task"><div class="icon">📺</div><div class="grow"><b>Watch 5 Ads</b><span id="adProgress">0 of 5 successful ad views completed in the current 24-hour window. Total possible reward: 250 Coins.</span></div><button class="mini" id="earnAdBtn">Watch Ad</button></div></div></section></div>
 
-<div id="tabRef" class="tabPanel" style="display:none"><section class="section"><h2>Refer & Earn</h2><div class="refBox"><div style="font-weight:950;font-size:18px">Invite your friends</div><p style="color:#ddd;font-size:13px;line-height:1.45">Your link opens CashBee directly in Telegram. You receive 10% commission when a referred user's reward is approved.</p><div class="refLink" id="refLink">Preparing…</div><button class="btn" id="copyRefBtn">Copy Referral Link</button><button class="btn secondary" id="shareRefBtn">Share in Telegram</button></div><div class="card" style="margin-top:12px"><div class="statBox"><small>Referral status</small><b id="refStatus">No referred user recorded.</b></div></div></section></div>
+<div id="tabRef" class="tabPanel" style="display:none"><section class="section"><h2>Refer & Earn</h2><div class="refBox"><div style="font-weight:950;font-size:18px">Invite your friends</div><p style="color:#ddd;font-size:13px;line-height:1.45">Your link opens CashBee directly in Telegram. You receive 10% commission whenever the referred user earns a valid 50-coin reward.</p><div class="refLink" id="refLink">Preparing…</div><button class="btn" id="copyRefBtn">Copy Referral Link</button><button class="btn secondary" id="shareRefBtn">Share in Telegram</button></div><div class="card" style="margin-top:12px"><div class="statBox"><small>Referral status</small><b id="refStatus">No referred user recorded.</b></div></div></section></div>
 
-<div id="tabProfile" class="tabPanel" style="display:none"><section class="section"><h2>Profile</h2><div class="card"><div class="historyItem"><span>User</span><b id="profileName">CashBee User</b></div><div class="historyItem"><span>Firebase UID</span><b id="profileUid">—</b></div><div class="historyItem"><span>Coins</span><b id="profileCoins">0</b></div><div class="historyItem"><span>1,000 Coins</span><b>₹5</b></div><div class="historyItem"><span>Minimum withdrawal</span><b>₹5.00</b></div><div class="historyItem"><span>Payment method</span><b>UPI only</b></div></div></section><section class="section"><h2>Withdrawal History</h2><div class="card" id="withdrawHistory"><div class="empty">No withdrawal requests yet.</div></div></section></div>
+<div id="tabProfile" class="tabPanel" style="display:none"><section class="section"><h2>Profile</h2><div class="card"><div class="historyItem"><span>User</span><b id="profileName">CashBee User</b></div><div class="historyItem"><span>Telegram ID</span><b id="profileTelegramId">—</b></div><div class="historyItem"><span>Telegram username</span><b id="profileTelegramUsername">—</b></div><div class="historyItem"><span>Firebase UID</span><b id="profileUid">—</b></div><div class="historyItem"><span>Coins</span><b id="profileCoins">0</b></div><div class="historyItem"><span>1,000 Coins</span><b>₹5</b></div><div class="historyItem"><span>Minimum withdrawal</span><b>₹5.00</b></div><div class="historyItem"><span>Payment method</span><b>UPI only</b></div></div></section><section class="section"><h2>Withdrawal History</h2><div class="card" id="withdrawHistory"><div class="empty">No withdrawal requests yet.</div></div></section></div>
 
 <nav class="nav"><button class="active" data-tab="home">🏠<br>Home</button><button data-tab="earn">🎮<br>Earn</button><button data-tab="ref">👥<br>Refer</button><button data-tab="profile">👤<br>Profile</button></nav>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -65,7 +65,7 @@ const CLAIMS={daily:{amount:DAILY_COINS,label:'Daily Check-in'},ad:{amount:AD_CO
 const state={
  db:null,user:null,tg:null,tgUser:null,coins:0,pending:0,
  lastDailyAt:null,lastAdAt:null,adCount:0,adWindowStart:null,
- claimDocs:[],withdrawals:[],busy:false,refLink:'',refSource:null,referral:null
+ claimDocs:[],withdrawals:[],busy:false,refLink:'',refSource:null,referral:null,telegramConnected:false,adSdkReady:false
 };
 let toastTimer=null;
 const $=id=>document.getElementById(id);
@@ -75,6 +75,17 @@ function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&l
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 function setModal(id,open){$(id).style.display=open?'flex':'none'}
 function buildReferral(){return `https://t.me/${BOT}?startapp=ref_${encodeURIComponent(state.user.uid)}`}
+function requireConnected(){
+ if(!state.telegramConnected||!state.user){
+  toast('Open CashBee from the Telegram bot to connect your Telegram account.');
+  return false;
+ }
+ return true;
+}
+function activeAdCount(){
+ const within=state.adWindowStart&&timestampAgeMs(state.adWindowStart)<86400000;
+ return within?Math.min(Number(state.adCount||0),ADS_REQUIRED):0;
+}
 
 function updateUI(){
  $('coins').textContent=String(state.coins);
@@ -83,14 +94,19 @@ function updateUI(){
  $('earnApproved').textContent=String(state.coins);
  $('earnPending').textContent=String(state.pending);
  $('profileName').textContent=(state.tgUser&&state.tgUser.first_name)||'CashBee User';
+ $('profileTelegramId').textContent=state.tgUser?.id?String(state.tgUser.id):'Not connected';
+ $('profileTelegramUsername').textContent=state.tgUser?.username?('@'+state.tgUser.username):'—';
  $('profileUid').textContent=state.user?state.user.uid.slice(0,12)+'…':'—';
- $('userPill').textContent=((state.tgUser&&state.tgUser.first_name)||'User').slice(0,14);
+ $('userPill').textContent=state.telegramConnected?(((state.tgUser&&state.tgUser.first_name)||'User').slice(0,14)):'Open in Telegram';
  $('refLink').textContent=state.refLink||'Preparing…';
- const count=Math.min(Number(state.adCount||0),ADS_REQUIRED);
+ const count=activeAdCount();
  const progress=`${count} of ${ADS_REQUIRED} successful ad views completed in the current 24-hour window. Total possible reward: ${ADS_REQUIRED*AD_COINS} Coins.`;
  if($('adProgress'))$('adProgress').textContent=progress;
  if($('adBtn'))$('adBtn').textContent=count>=ADS_REQUIRED?'Ads complete · 5/5':'Watch Ad ('+count+'/5)';
  if($('earnAdBtn'))$('earnAdBtn').textContent=count>=ADS_REQUIRED?'Ads complete':'Watch Ad';
+ const dailyUsed=state.lastDailyAt&&timestampAgeMs(state.lastDailyAt)<86400000;
+ if($('dailyBtn'))$('dailyBtn').textContent=dailyUsed?'Daily Check-in used':'Daily Check-in · 50';
+ if($('earnDailyBtn'))$('earnDailyBtn').textContent=dailyUsed?'Used today':'Check in';
 }
 
 function switchTab(tab){
@@ -138,18 +154,37 @@ async function loadReferralStatus(){
 }
 
 async function initTelegram(){
+ const tg=window.Telegram&&window.Telegram.WebApp;
+ if(!tg){
+  state.telegramConnected=false;
+  $('userPill').textContent='Open in Telegram';
+  return;
+ }
  try{
-  const tg=window.Telegram&&window.Telegram.WebApp;
-  if(!tg)return;
-  state.tg=tg;tg.ready();tg.expand();
+  state.tg=tg;
+  tg.ready();
+  tg.expand();
   state.tgUser=tg.initDataUnsafe?.user||null;
-  state.refSource=tg.initDataUnsafe?.start_param||null;
+  const params=new URLSearchParams(window.location.search);
+  state.refSource=tg.initDataUnsafe?.start_param||params.get('tgWebAppStartParam')||params.get('startapp')||null;
+  state.telegramConnected=Boolean(tg.initData && state.tgUser?.id);
   state.tg.BackButton?.hide();
- }catch(e){console.warn('telegram',e)}
+  if(!state.telegramConnected){
+   $('userPill').textContent='Open in Telegram';
+   $('mainNotice').innerHTML='<strong>Telegram connection needed</strong>Open CashBee from @'+BOT+' inside the Telegram app. Your Telegram ID is only supplied to the Mini App when Telegram launches it.';
+  }
+ }catch(e){
+  console.warn('telegram',e);
+  state.telegramConnected=false;
+ }
 }
 
 async function ensureUser(){
  await initTelegram();
+ if(!state.telegramConnected){
+  updateUI();
+  return;
+ }
  if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
  state.db=firebase.firestore();
  const auth=firebase.auth();
@@ -159,13 +194,28 @@ async function ensureUser(){
 
  const userRef=state.db.collection('users').doc(u.uid);
  let snap=await userRef.get();
+ const identity={
+  uid:u.uid,
+  displayName:state.tgUser?.first_name||'CashBee User',
+  telegramId:String(state.tgUser.id),
+  telegramUsername:state.tgUser?.username||'',
+  telegramFirstName:state.tgUser?.first_name||'',
+  telegramLastName:state.tgUser?.last_name||''
+ };
  if(!snap.exists){
   await userRef.set({
-   uid:u.uid,displayName:(state.tgUser?.first_name)||'CashBee User',coins:0,
+   ...identity,coins:0,
    createdAt:firebase.firestore.FieldValue.serverTimestamp(),
    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
   });
   snap=await userRef.get();
+ }else{
+  const d=snap.data()||{};
+  const changed=d.telegramId!==identity.telegramId||d.telegramUsername!==identity.telegramUsername||d.telegramFirstName!==identity.telegramFirstName||d.telegramLastName!==identity.telegramLastName||d.displayName!==identity.displayName;
+  if(changed){
+   await userRef.update({...identity,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+   snap=await userRef.get();
+  }
  }
  const d=snap.data()||{};
  state.coins=Number(d.coins||0);
@@ -189,6 +239,7 @@ async function ensureUser(){
  await attachReferralIfNeeded();
  updateUI();
  watchClaims();
+ preloadMonetagAd();
 }
 
 async function attachReferralIfNeeded(){
@@ -216,11 +267,24 @@ async function waitForAdSdk(timeoutMs=10000){
  if(typeof window.show_11935934!=='function')throw new Error('Monetag SDK not ready');
 }
 
-async function showMonetagAd(){
+async function preloadMonetagAd(){
+ try{
+  if(!state.telegramConnected||!state.tgUser?.id)return;
+  await waitForAdSdk();
+  await window.show_11935934({type:'preload',ymid:String(state.tgUser.id)});
+  state.adSdkReady=true;
+ }catch(e){
+  state.adSdkReady=false;
+  console.warn('ad preload',e);
+ }
+}
+
+async function showMonetagAd(source){
  await waitForAdSdk();
  let lastError=null;
+ const args={ymid:String(state.tgUser?.id||state.user.uid),requestVar:source||'reward'};
  for(let i=0;i<2;i++){
-  try{return await window.show_11935934()}
+  try{return await window.show_11935934(args)}
   catch(e){lastError=e;if(i===0)await sleep(700)}
  }
  throw lastError||new Error('Ad unavailable');
@@ -257,4 +321,136 @@ async function commitReward(type){
   let nextAdWindowStart=user.adWindowStart||null;
   if(type==='ad'){
    const withinWindow=nextAdWindowStart&&timestampAgeMs(nextAdWindowStart)<86400000;
-   if(within
+   if(withinWindow){
+    if(nextAdCount>=ADS_REQUIRED)throw new Error('ADS_LIMIT');
+    nextAdCount+=1;
+   }else{
+    nextAdCount=1;
+    nextAdWindowStart=serverTs;
+   }
+  }else if(type==='daily'){
+   if(user.lastDailyAt&&timestampAgeMs(user.lastDailyAt)<86400000)throw new Error('DAILY_LIMIT');
+  }
+
+  const amount=50;
+  const commission=(refUserRef&&refUserSnap&&refUserSnap.exists)?Math.floor(amount*REFERRAL_RATE):0;
+  tx.set(eventRef,{
+   userId:state.user.uid,type,amount,commission,
+   referrerId:refUserRef?referrerId:'',
+   createdAt:serverTs
+  });
+  tx.set(claimRef,{
+   userId:state.user.uid,type,amount,status:'approved',auto:true,
+   rewardEventId:eventId,date:new Date().toISOString().slice(0,10),
+   createdAt:serverTs,referralCommission:commission
+  });
+
+  const userUpdate={
+   coins:Number(user.coins||0)+amount,
+   lastRewardEventId:eventId,
+   updatedAt:serverTs
+  };
+  if(type==='daily')userUpdate.lastDailyAt=serverTs;
+  if(type==='ad'){
+   userUpdate.adCount=nextAdCount;
+   userUpdate.adWindowStart=nextAdWindowStart;
+   userUpdate.lastAdAt=serverTs;
+  }
+  tx.update(userRef,userUpdate);
+
+  if(refUserRef&&refUserSnap&&refUserSnap.exists&&commission>0){
+   tx.update(refUserRef,{
+    coins:Number(refUserSnap.data()?.coins||0)+commission,
+    lastReferralEventId:eventId,
+    updatedAt:serverTs
+   });
+  }
+ });
+}
+
+async function rewardDaily(){
+ if(!requireConnected()||state.busy)return;
+ state.busy=true;
+ try{
+  await commitReward('daily');
+  toast('✅ Daily Check-in: +50 Coins added!');
+ }catch(e){
+  console.error('daily reward',e);
+  if(e.message==='DAILY_LIMIT'||e.code==='permission-denied')toast('Daily Check-in already used in the last 24 hours.');
+  else toast('Daily reward could not be saved.');
+ }finally{state.busy=false}
+}
+
+async function rewardAd(source='home'){
+ if(!requireConnected()||state.busy)return;
+ state.busy=true;
+ try{
+  if(Number(state.adCount||0)>=ADS_REQUIRED && timestampAgeMs(state.adWindowStart)<86400000){
+   toast('✅ 5 ads already completed. Come back after the 24-hour window.');return;
+  }
+  toast('Loading ad…');
+  await showMonetagAd(source);
+  await commitReward('ad');
+  toast('✅ Ad completed: +50 Coins added!');
+ }catch(e){
+  console.error('ad reward',e);
+  if(e.message==='ADS_LIMIT'||e.code==='permission-denied')toast('Ad reward limit reached or Firestore rules are not published.');
+  else if(String(e.message).toLowerCase().includes('monetag')||String(e.message).toLowerCase().includes('ad'))toast('Ad is not available right now. Please try again.');
+  else toast('Ad finished, but the reward could not be saved. Please refresh and retry once.');
+ }finally{state.busy=false;updateUI()}
+}
+
+async function copyReferral(){
+ const link=state.refLink;
+ try{await navigator.clipboard.writeText(link);toast('Referral link copied.')}
+ catch(e){window.prompt('Copy your referral link:',link)}
+}
+function shareReferral(){
+ const link=state.refLink;
+ const text=encodeURIComponent('Join me on CashBee 🐝 and earn coins:');
+ const url='https://t.me/share/url?url='+encodeURIComponent(link)+'&text='+text;
+ if(state.tg?.openTelegramLink)state.tg.openTelegramLink(url);else window.open(url,'_blank')
+}
+
+async function submitWithdrawal(){
+ if(!requireConnected()||state.busy)return;
+ const amount=Number($('amount').value);
+ const details=$('details').value.trim();
+ if(!Number.isInteger(amount)||amount<5){toast('Minimum withdrawal is ₹5.00.');return}
+ const coinCost=amount*COINS_PER_RUPEE;
+ if(coinCost>state.coins){toast(`Insufficient approved coins. You need ${coinCost} Coins.`);return}
+ if(!/^([\w.-]+)@([\w.-]+)$/.test(details)||details.length>120){toast('Enter a valid UPI ID.');return}
+ state.busy=true;
+ try{
+  await state.db.collection('withdrawals').add({
+   userId:state.user.uid,amount,coinCost,method:'UPI',details,status:'pending',
+   createdAt:firebase.firestore.FieldValue.serverTimestamp()
+  });
+  toast('UPI withdrawal request submitted.');
+  $('amount').value='';$('details').value='';setModal('withdrawModal',false);loadWithdrawals();
+ }catch(e){console.error(e);toast('Withdrawal could not be submitted. Check Firestore rules.')}finally{state.busy=false}
+}
+
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+$('adBtn').onclick=()=>rewardAd('home_ad');
+$('earnAdBtn').onclick=()=>rewardAd('earn_ad');
+$('dailyBtn').onclick=rewardDaily;
+$('earnDailyBtn').onclick=rewardDaily;
+$('referBtn').onclick=()=>switchTab('ref');
+$('copyRefBtn').onclick=copyReferral;
+$('shareRefBtn').onclick=shareReferral;
+$('withdrawBtn').onclick=()=>{if(requireConnected())setModal('withdrawModal',true)};
+$('submitWithdrawal').onclick=submitWithdrawal;
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>setModal(b.dataset.close,false));
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.style.display='none'}));
+
+ensureUser().catch(e=>{
+ console.error('init',e);
+ $('userPill').textContent='Connection error';
+ $('mainNotice').innerHTML='<strong>CashBee connection failed</strong>Check Firebase Anonymous Authentication and Firestore rules. Then reopen the Mini App from Telegram.';
+ toast(e?.message||'CashBee could not connect to Firebase.');
+});
+
+</script>
+</body>
+</html>
