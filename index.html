@@ -252,30 +252,46 @@ async function ensureUser(){
 }
 
 async function attachReferralIfNeeded(){
- const raw=String(state.refSource||'');
- if(!raw.startsWith('ref_'))return;
+ // The referral is written once per referred Firebase UID. Creating the referral
+ // record and incrementing the inviter count happen in one transaction so they
+ // cannot get out of sync or increment twice on a retry.
+ const raw=String(state.refSource||'').trim();
+ if(!raw.startsWith('ref_')||!state.user||!state.db)return;
  const inviter=raw.slice(4).trim();
  if(!inviter||inviter===state.user.uid)return;
- const refRef=state.db.collection('referrals').doc(state.user.uid);
+ const referralRef=state.db.collection('referrals').doc(state.user.uid);
+ const inviterRef=state.db.collection('users').doc(inviter);
+ const serverTs=firebase.firestore.FieldValue.serverTimestamp();
  try{
-  const existing=await refRef.get();
-  if(existing.exists)return;
-  const refUser=await state.db.collection('users').doc(inviter).get();
-  if(!refUser.exists){console.warn('Referral inviter does not exist');return}
-  await refRef.set({
-   referrerId:inviter,referredUserId:state.user.uid,status:'active',
-   createdAt:firebase.firestore.FieldValue.serverTimestamp()
-  });
-  try{
-   await state.db.collection('users').doc(inviter).update({
-    referralCount:firebase.firestore.FieldValue.increment(1),
-    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  await state.db.runTransaction(async tx=>{
+   const referralSnap=await tx.get(referralRef);
+   if(referralSnap.exists){
+    const existing=referralSnap.data()||{};
+    state.referral=existing;
+    return;
+   }
+   const inviterSnap=await tx.get(inviterRef);
+   if(!inviterSnap.exists)throw new Error('REFERRER_NOT_FOUND');
+   const inviterData=inviterSnap.data()||{};
+   tx.set(referralRef,{
+    referrerId:inviter,
+    referredUserId:state.user.uid,
+    status:'active',
+    createdAt:serverTs
    });
-  }catch(countError){
-   console.warn('referral count update',countError);
-  }
-  state.referral={referrerId:inviter,referredUserId:state.user.uid,status:'active'};
- }catch(e){console.warn('referral attach',e)}
+   tx.update(inviterRef,{
+    referralCount:Number(inviterData.referralCount||0)+1,
+    updatedAt:serverTs
+   });
+  });
+  const saved=await referralRef.get();
+  if(saved.exists)state.referral=saved.data()||null;
+  console.info('Referral processed',state.referral);
+ }catch(e){
+  console.warn('Referral could not be attached:',e);
+  if(e.code==='permission-denied')toast('Referral blocked by Firestore rules. Update the rules before testing referrals.');
+  else if(e.message==='REFERRER_NOT_FOUND')toast('Referral link is invalid: inviter account was not found.');
+ }
 }
 
 async function waitForAdSdk(timeoutMs=10000){
