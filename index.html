@@ -436,24 +436,19 @@ async function commitReward(type){
 
     let referrerId='';
     let refUserRef=null;
-    let refUserSnap=null;
 
     // Commission is intentionally resolved only for ad rewards.
+    // Read only the caller's referral record. Do NOT read another user's
+    // private /users document; credit that account with an atomic increment.
     // Daily Check-in NEVER creates referral commission.
     if(type==='ad'){
       const referralSnap=await tx.get(referralRef);
       referrerId=referralSnap.exists?String(referralSnap.data()?.referrerId||''):'';
-
       if(referrerId&&referrerId!==state.user.uid){
         refUserRef=state.db.collection('users').doc(referrerId);
-        refUserSnap=await tx.get(refUserRef);
-        if(!refUserSnap.exists){
-          refUserRef=null;
-          refUserSnap=null;
-          referrerId='';
-        }
       }else{
         referrerId='';
+        refUserRef=null;
       }
     }
 
@@ -473,7 +468,7 @@ async function commitReward(type){
       if(user.lastDailyAt&&timestampAgeMs(user.lastDailyAt)<86400000)throw new Error('DAILY_LIMIT');
     }
 
-    const commission=(type==='ad'&&refUserRef&&refUserSnap&&refUserSnap.exists)
+    const commission=(type==='ad'&&refUserRef)
       ?Math.floor(amount*REFERRAL_RATE)
       :0;
 
@@ -520,9 +515,9 @@ async function commitReward(type){
 
     // Credit the referrer in the SAME transaction so either both balances change,
     // or neither changes. This happens only for ad rewards.
-    if(commission>0&&refUserRef&&refUserSnap){
+    if(commission>0&&refUserRef){
       tx.update(refUserRef,{
-        coins:Number(refUserSnap.data()?.coins||0)+commission,
+        coins:firebase.firestore.FieldValue.increment(commission),
         lastReferralEventId:eventId,
         updatedAt:serverTs
       });
