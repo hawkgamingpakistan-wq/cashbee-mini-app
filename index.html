@@ -30,18 +30,18 @@ button,input,select{font:inherit}button{cursor:pointer}#app{max-width:560px;marg
 
 <div id="tabHome" class="tabPanel">
 <section class="hero"><div class="heroRow"><div><small>Your CashBee balance</small><div class="balance">₹<span id="balance">0.00</span></div><div class="coins"><span id="coins">0</span> Coins</div></div><div style="font-size:38px">🐝</div></div><button class="btn" id="withdrawBtn">💸 Withdraw from ₹5</button></section>
-<div class="notice" id="mainNotice"><strong>CashBee rewards</strong>1,000 Coins = ₹5. Daily Check-in gives 50 Coins instantly. Every successful ad view gives 50 Coins instantly. Complete up to 5 ads in a rolling 24 hours for up to 250 Coins. Referral commission is added automatically.</div>
+<div class="notice" id="mainNotice"><strong>CashBee rewards</strong>1,000 Coins = ₹5. Daily Check-in gives 50 Coins instantly. Every successful ad view gives 50 Coins instantly. Complete up to 5 ads in a rolling 24 hours for up to 250 Coins. Referral activity is recorded safely for processing.</div>
 <section class="grid">
 <article class="card"><div class="icon">🎁</div><h3>Daily Check-in</h3><p>Claim 50 Coins once per day. Reward is added automatically after a successful check-in.</p><button class="btn secondary" id="dailyBtn">Daily Check-in · 50</button></article>
 <article class="card"><div class="icon">📺</div><h3>Watch 5 Ads</h3><p>Watch up to 5 available ads. Each successful ad = 50 Coins instantly. Total = 250 Coins.</p><button class="btn" id="adBtn">Watch Ad (0/5)</button></article>
 </section>
-<section class="section"><h2>Invite Friends</h2><div class="card"><div class="task"><div class="icon">👥</div><div class="grow"><b>10% referral commission</b><span>Share your personal CashBee link. You earn 10% of each valid 50-coin reward made by a referred user.</span><div id="homeRefLink" class="refLink" style="margin-top:8px">Preparing…</div></div><button class="mini" id="referBtn">Invite</button></div></div></section>
+<section class="section"><h2>Invite Friends</h2><div class="card"><div class="task"><div class="icon">👥</div><div class="grow"><b>10% referral commission</b><span>Share your personal CashBee link. Valid referred rewards are recorded with a 10% referral commission.</span><div id="homeRefLink" class="refLink" style="margin-top:8px">Preparing…</div></div><button class="mini" id="referBtn">Invite</button></div></div></section>
 <section class="section"><h2>Reward History</h2><div class="card" id="claimHistory"><div class="empty">No claims yet.</div></div></section>
 </div>
 
 <div id="tabEarn" class="tabPanel" style="display:none"><section class="section"><h2>Earn Center</h2><div class="stats"><div class="statBox"><small>Approved coins</small><b id="earnApproved">0</b></div><div class="statBox"><small>Pending claims</small><b id="earnPending">0</b></div></div><div class="card" style="margin-top:12px"><div class="task"><div class="icon">🎁</div><div class="grow"><b>Daily Check-in</b><span>50 Coins once per day, added automatically.</span></div><button class="mini" id="earnDailyBtn">Check in</button></div><div class="task"><div class="icon">📺</div><div class="grow"><b>Watch 5 Ads</b><span id="adProgress">0 of 5 successful ad views completed in the current 24-hour window. Total possible reward: 250 Coins.</span></div><button class="mini" id="earnAdBtn">Watch Ad</button></div></div></section></div>
 
-<div id="tabRef" class="tabPanel" style="display:none"><section class="section"><h2>Refer & Earn</h2><div class="refBox"><div style="font-weight:950;font-size:18px">Invite your friends</div><p style="color:#ddd;font-size:13px;line-height:1.45">Your link opens CashBee directly in Telegram. You receive 10% commission whenever the referred user earns a valid 50-coin reward.</p><div class="refLink" id="refLink">Preparing…</div><button class="btn" id="copyRefBtn">Copy Referral Link</button><button class="btn secondary" id="shareRefBtn">Share in Telegram</button></div><div class="stats" style="margin-top:12px"><div class="statBox"><small>Friends joined</small><b id="refCount">0</b></div><div class="statBox"><small>Commission</small><b>10%</b></div></div><div class="card" style="margin-top:12px"><div class="statBox"><small>Referral status</small><b id="refStatus">No referred user recorded.</b></div></div></section></div>
+<div id="tabRef" class="tabPanel" style="display:none"><section class="section"><h2>Refer & Earn</h2><div class="refBox"><div style="font-weight:950;font-size:18px">Invite your friends</div><p style="color:#ddd;font-size:13px;line-height:1.45">Your link opens CashBee directly in Telegram. Valid referred rewards are recorded with a 10% referral commission.</p><div class="refLink" id="refLink">Preparing…</div><button class="btn" id="copyRefBtn">Copy Referral Link</button><button class="btn secondary" id="shareRefBtn">Share in Telegram</button></div><div class="stats" style="margin-top:12px"><div class="statBox"><small>Friends joined</small><b id="refCount">0</b></div><div class="statBox"><small>Commission</small><b>10%</b></div></div><div class="card" style="margin-top:12px"><div class="statBox"><small>Referral status</small><b id="refStatus">No referred user recorded.</b></div></div></section></div>
 
 <div id="tabProfile" class="tabPanel" style="display:none"><section class="section"><h2>Profile</h2><div class="card"><div class="historyItem"><span>User</span><b id="profileName">CashBee User</b></div><div class="historyItem"><span>Telegram ID</span><b id="profileTelegramId">—</b></div><div class="historyItem"><span>Telegram username</span><b id="profileTelegramUsername">—</b></div><div class="historyItem"><span>Firebase UID</span><b id="profileUid">—</b></div><div class="historyItem"><span>Coins</span><b id="profileCoins">0</b></div><div class="historyItem"><span>1,000 Coins</span><b>₹5</b></div><div class="historyItem"><span>Minimum withdrawal</span><b>₹5.00</b></div><div class="historyItem"><span>Payment method</span><b>UPI only</b></div></div></section><section class="section"><h2>Withdrawal History</h2><div class="card" id="withdrawHistory"><div class="empty">No withdrawal requests yet.</div></div></section></div>
 
@@ -54,7 +54,7 @@ button,input,select{font:inherit}button{cursor:pointer}#app{max-width:560px;marg
 'use strict';
 
 const firebaseConfig={apiKey:'AIzaSyCjXbCgARUdUhQSXZcwfQ8pBrb-c5706rg',authDomain:'cashbee-18fda.firebaseapp.com',projectId:'cashbee-18fda',storageBucket:'cashbee-18fda.firebasestorage.app',messagingSenderId:'571973453825',appId:'1:571973453825:web:01784ea53890893a619800',measurementId:'G-EKKJBYLSDN'};
-const APP_BUILD='cashbee-fixed-v4-2026-10-02';
+const APP_BUILD='cashbee-final-v5-2026-10-02';
 const BOT='CashBeeWorldBot';
 const COINS_PER_RUPEE=200;
 const DAILY_COINS=50;
@@ -74,6 +74,7 @@ const $=id=>document.getElementById(id);
 function toast(msg){const e=$('toast');e.textContent=msg;e.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.style.display='none',3000)}
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function withTimeout(promise,ms,label){return Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error(label||'Operation timed out')),ms))])}
 function setModal(id,open){$(id).style.display=open?'flex':'none'}
 function buildReferral(){return `https://t.me/${BOT}?startapp=ref_${encodeURIComponent(state.user.uid)}`}
 function requireConnected(){
@@ -148,14 +149,31 @@ async function loadWithdrawals(){
 
 async function loadReferralStatus(){
  try{
-  const s=await state.db.collection('referrals').doc(state.user.uid).get();
-  if(!s.exists){$('refStatus').textContent='No referral attached.';state.referral=null;return}
-  state.referral=s.data()||{};
-  $('refStatus').textContent=`Referral active · 10% commission to ${String(state.referral.referrerId||'').slice(0,12)}…`;
-  if($('refCount'))$('refCount').textContent=String(state.referralCount||0);
- }catch(e){$('refStatus').textContent='Referral status unavailable.';console.warn('referral status',e)}
-}
+  const own=await state.db.collection('referrals').doc(state.user.uid).get();
+  if(own.exists){
+   state.referral=own.data()||{};
+   $('refStatus').textContent='Referral active · 10% commission recorded for valid rewards.';
+  }else{
+   state.referral=null;
+   $('refStatus').textContent='No referral attached.';
+  }
 
+  try{
+   const mine=await state.db.collection('referrals')
+    .where('referrerId','==',state.user.uid)
+    .limit(1000)
+    .get();
+   state.referralCount=mine.size;
+  }catch(countErr){
+   console.warn('referral count',countErr);
+  }
+
+  if($('refCount'))$('refCount').textContent=String(state.referralCount||0);
+ }catch(e){
+  $('refStatus').textContent='Referral status unavailable.';
+  console.warn('referral status',e);
+ }
+}
 async function initTelegram(){
  const tg=window.Telegram&&window.Telegram.WebApp;
  if(!tg){
@@ -261,52 +279,38 @@ $('userPill').textContent='Starting Telegram check…';
  state.refLink=buildReferral();
  await attachReferralIfNeeded();
  updateUI();
+ loadReferralStatus().catch(e=>console.warn('referral status init',e));
  watchClaims();
 }
 
 async function attachReferralIfNeeded(){
- // The referral is written once per referred Firebase UID. Creating the referral
- // record and incrementing the inviter count happen in one transaction so they
- // cannot get out of sync or increment twice on a retry.
- const raw=String(state.refSource||'').trim();
- if(!raw.startsWith('ref_')||!state.user||!state.db)return;
- const inviter=raw.slice(4).trim();
- if(!inviter||inviter===state.user.uid)return;
- const referralRef=state.db.collection('referrals').doc(state.user.uid);
- const inviterRef=state.db.collection('users').doc(inviter);
- const serverTs=firebase.firestore.FieldValue.serverTimestamp();
- try{
-  await state.db.runTransaction(async tx=>{
-   const referralSnap=await tx.get(referralRef);
-   if(referralSnap.exists){
-    const existing=referralSnap.data()||{};
-    state.referral=existing;
-    return;
-   }
-   const inviterSnap=await tx.get(inviterRef);
-   if(!inviterSnap.exists)throw new Error('REFERRER_NOT_FOUND');
-   const inviterData=inviterSnap.data()||{};
-   tx.set(referralRef,{
-    referrerId:inviter,
-    referredUserId:state.user.uid,
-    status:'active',
-    createdAt:serverTs
-   });
-   tx.update(inviterRef,{
-    referralCount:Number(inviterData.referralCount||0)+1,
-    updatedAt:serverTs
-   });
-  });
-  const saved=await referralRef.get();
-  if(saved.exists)state.referral=saved.data()||null;
-  console.info('Referral processed',state.referral);
- }catch(e){
-  console.warn('Referral could not be attached:',e);
-  if(e.code==='permission-denied')toast('Referral blocked by Firestore rules. Update the rules before testing referrals.');
-  else if(e.message==='REFERRER_NOT_FOUND')toast('Referral link is invalid: inviter account was not found.');
- }
-}
+  const raw=String(state.refSource||'').trim();
+  if(!raw.startsWith('ref_')||!state.user||!state.db)return;
+  const inviter=raw.slice(4).trim();
+  if(!inviter||inviter===state.user.uid)return;
 
+  const referralRef=state.db.collection('referrals').doc(state.user.uid);
+  try{
+    await withTimeout((async()=>{
+      const snap=await referralRef.get();
+      if(snap.exists){
+        state.referral=snap.data()||null;
+        return;
+      }
+      await referralRef.set({
+        referrerId:inviter,
+        referredUserId:state.user.uid,
+        status:'active',
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+      const saved=await referralRef.get();
+      if(saved.exists)state.referral=saved.data()||null;
+    })(),7000,'Referral setup timed out');
+  }catch(e){
+    console.warn('Referral setup:',e);
+    // Referral setup must never block the main app. It is safe to retry later.
+  }
+}
 async function waitForAdSdk(timeoutMs=10000){
  const started=Date.now();
  while(typeof window.show_11935934!=='function' && Date.now()-started<timeoutMs){await sleep(250)}
@@ -329,79 +333,81 @@ function timestampAgeMs(v){
 }
 
 async function commitReward(type){
- const eventId=`reward_${state.user.uid}_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
- const userRef=state.db.collection('users').doc(state.user.uid);
- const referralRef=state.db.collection('referrals').doc(state.user.uid);
- const eventRef=state.db.collection('rewardEvents').doc(eventId);
- const claimRef=state.db.collection('claims').doc(eventId);
- const serverTs=firebase.firestore.FieldValue.serverTimestamp();
+  const eventId=`reward_${state.user.uid}_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+  const userRef=state.db.collection('users').doc(state.user.uid);
+  const referralRef=state.db.collection('referrals').doc(state.user.uid);
+  const eventRef=state.db.collection('rewardEvents').doc(eventId);
+  const claimRef=state.db.collection('claims').doc(eventId);
+  const serverTs=firebase.firestore.FieldValue.serverTimestamp();
 
- await state.db.runTransaction(async tx=>{
-  const userSnap=await tx.get(userRef);
-  if(!userSnap.exists)throw new Error('USER_NOT_FOUND');
-  const user=userSnap.data()||{};
-  const referralSnap=await tx.get(referralRef);
-  const referrerId=referralSnap.exists?String(referralSnap.data()?.referrerId||''):'';
-  let refUserSnap=null;
-  let refUserRef=null;
-  if(referrerId&&referrerId!==state.user.uid){
-   refUserRef=state.db.collection('users').doc(referrerId);
-   refUserSnap=await tx.get(refUserRef);
-   if(!refUserSnap.exists){refUserRef=null;refUserSnap=null}
-  }
+  await state.db.runTransaction(async tx=>{
+    const userSnap=await tx.get(userRef);
+    if(!userSnap.exists)throw new Error('USER_NOT_FOUND');
 
-  const now=Date.now();
-  let nextAdCount=Number(user.adCount||0);
-  let nextAdWindowStart=user.adWindowStart||null;
-  if(type==='ad'){
-   const withinWindow=nextAdWindowStart&&timestampAgeMs(nextAdWindowStart)<86400000;
-   if(withinWindow){
-    if(nextAdCount>=ADS_REQUIRED)throw new Error('ADS_LIMIT');
-    nextAdCount+=1;
-   }else{
-    nextAdCount=1;
-    nextAdWindowStart=serverTs;
-   }
-  }else if(type==='daily'){
-   if(user.lastDailyAt&&timestampAgeMs(user.lastDailyAt)<86400000)throw new Error('DAILY_LIMIT');
-  }
+    const user=userSnap.data()||{};
+    const referralSnap=await tx.get(referralRef);
+    const referrerId=referralSnap.exists?String(referralSnap.data()?.referrerId||''):'';
+    const amount=(type==='daily'||type==='ad')?50:0;
+    if(!amount)throw new Error('INVALID_REWARD_TYPE');
 
-  const amount=50;
-  const commission=(refUserRef&&refUserSnap&&refUserSnap.exists)?Math.floor(amount*REFERRAL_RATE):0;
-  tx.set(eventRef,{
-   userId:state.user.uid,type,amount,commission,
-   referrerId:refUserRef?referrerId:'',
-   createdAt:serverTs
+    let nextAdCount=Number(user.adCount||0);
+    let nextAdWindowStart=user.adWindowStart||null;
+
+    if(type==='ad'){
+      const withinWindow=nextAdWindowStart&&timestampAgeMs(nextAdWindowStart)<86400000;
+      if(withinWindow){
+        if(nextAdCount>=ADS_REQUIRED)throw new Error('ADS_LIMIT');
+        nextAdCount+=1;
+      }else{
+        nextAdCount=1;
+        nextAdWindowStart=serverTs;
+      }
+    }else if(type==='daily'){
+      if(user.lastDailyAt&&timestampAgeMs(user.lastDailyAt)<86400000)throw new Error('DAILY_LIMIT');
+    }
+
+    const commission=referrerId&&referrerId!==state.user.uid?Math.floor(amount*REFERRAL_RATE):0;
+
+    tx.set(eventRef,{
+      userId:state.user.uid,
+      type,
+      amount,
+      commission,
+      referralCommission:commission,
+      referralCommissionStatus:commission?'pending':'none',
+      referrerId,
+      createdAt:serverTs
+    });
+
+    tx.set(claimRef,{
+      userId:state.user.uid,
+      type,
+      amount,
+      status:'approved',
+      auto:true,
+      rewardEventId:eventId,
+      date:new Date().toISOString().slice(0,10),
+      createdAt:serverTs,
+      referralCommission:commission,
+      referralCommissionStatus:commission?'pending':'none'
+    });
+
+    const userUpdate={
+      coins:Number(user.coins||0)+amount,
+      lastRewardEventId:eventId,
+      updatedAt:serverTs
+    };
+
+    if(type==='daily')userUpdate.lastDailyAt=serverTs;
+    if(type==='ad'){
+      userUpdate.adCount=nextAdCount;
+      userUpdate.adWindowStart=nextAdWindowStart;
+      userUpdate.lastAdAt=serverTs;
+    }
+
+    tx.update(userRef,userUpdate);
   });
-  tx.set(claimRef,{
-   userId:state.user.uid,type,amount,status:'approved',auto:true,
-   rewardEventId:eventId,date:new Date().toISOString().slice(0,10),
-   createdAt:serverTs,referralCommission:commission
-  });
-
-  const userUpdate={
-   coins:Number(user.coins||0)+amount,
-   lastRewardEventId:eventId,
-   updatedAt:serverTs
-  };
-  if(type==='daily')userUpdate.lastDailyAt=serverTs;
-  if(type==='ad'){
-   userUpdate.adCount=nextAdCount;
-   userUpdate.adWindowStart=nextAdWindowStart;
-   userUpdate.lastAdAt=serverTs;
-  }
-  tx.update(userRef,userUpdate);
-
-  if(refUserRef&&refUserSnap&&refUserSnap.exists&&commission>0){
-   tx.update(refUserRef,{
-    coins:Number(refUserSnap.data()?.coins||0)+commission,
-    lastReferralEventId:eventId,
-    updatedAt:serverTs
-   });
-  }
- });
 }
-
 async function rewardDaily(){
  if(!requireConnected()||state.busy)return;
  state.busy=true;
@@ -447,24 +453,70 @@ function shareReferral(){
 }
 
 async function submitWithdrawal(){
- if(!requireConnected()||state.busy)return;
- const amount=Number($('amount').value);
- const details=$('details').value.trim();
- if(!Number.isInteger(amount)||amount<5){toast('Minimum withdrawal is ₹5.00.');return}
- const coinCost=amount*COINS_PER_RUPEE;
- if(coinCost>state.coins){toast(`Insufficient approved coins. You need ${coinCost} Coins.`);return}
- if(!/^([\w.-]+)@([\w.-]+)$/.test(details)||details.length>120){toast('Enter a valid UPI ID.');return}
- state.busy=true;
- try{
-  await state.db.collection('withdrawals').add({
-   userId:state.user.uid,amount,coinCost,method:'UPI',details,status:'pending',
-   createdAt:firebase.firestore.FieldValue.serverTimestamp()
-  });
-  toast('UPI withdrawal request submitted.');
-  $('amount').value='';$('details').value='';setModal('withdrawModal',false);loadWithdrawals();
- }catch(e){console.error(e);toast('Withdrawal could not be submitted. Check Firestore rules.')}finally{state.busy=false}
-}
+  if(!requireConnected()||state.busy)return;
 
+  const amount=Number($('amount').value);
+  const details=$('details').value.trim();
+
+  if(!Number.isInteger(amount)||amount<5){
+    toast('Minimum withdrawal is ₹5.00.');
+    return;
+  }
+  const coinCost=amount*COINS_PER_RUPEE;
+  if(coinCost>state.coins){
+    toast(`Insufficient approved coins. You need ${coinCost} Coins.`);
+    return;
+  }
+  if(!/^([\w.-]+)@([\w.-]+)$/.test(details)||details.length>120){
+    toast('Enter a valid UPI ID.');
+    return;
+  }
+
+  state.busy=true;
+  const withdrawalRef=state.db.collection('withdrawals').doc();
+  const userRef=state.db.collection('users').doc(state.user.uid);
+  const serverTs=firebase.firestore.FieldValue.serverTimestamp();
+
+  try{
+    await state.db.runTransaction(async tx=>{
+      const userSnap=await tx.get(userRef);
+      if(!userSnap.exists)throw new Error('USER_NOT_FOUND');
+
+      const user=userSnap.data()||{};
+      const currentCoins=Number(user.coins||0);
+      if(currentCoins<coinCost)throw new Error('INSUFFICIENT_COINS');
+
+      tx.set(withdrawalRef,{
+        userId:state.user.uid,
+        amount,
+        coinCost,
+        method:'UPI',
+        details,
+        status:'pending',
+        createdAt:serverTs
+      });
+
+      tx.update(userRef,{
+        coins:currentCoins-coinCost,
+        lastWithdrawalId:withdrawalRef.id,
+        updatedAt:serverTs
+      });
+    });
+
+    toast('✅ UPI withdrawal request submitted.');
+    $('amount').value='';
+    $('details').value='';
+    setModal('withdrawModal',false);
+    loadWithdrawals();
+  }catch(e){
+    console.error('withdrawal',e);
+    if(e.message==='INSUFFICIENT_COINS')toast('Insufficient approved coins.');
+    else if(e.code==='permission-denied')toast('Withdrawal blocked by Firestore rules. Use the matching CashBee rules with this build.');
+    else toast('Withdrawal could not be submitted.');
+  }finally{
+    state.busy=false;
+  }
+}
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
 $('adBtn').onclick=()=>rewardAd('home_ad');
 $('earnAdBtn').onclick=()=>rewardAd('earn_ad');
@@ -479,30 +531,24 @@ document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>setModal(b.da
 document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.style.display='none'}));
 
 
-setTimeout(()=>{const p=$('userPill');if(p&&p.textContent==='Connecting…'){p.textContent='Startup stalled';const n=$('mainNotice');if(n)n.innerHTML='<strong>CashBee startup stalled</strong> The app did not reach Telegram/Firebase initialization. Check that the page and Firebase SDK scripts loaded, then reopen the Mini App.';}},12000);
-ensureUser().catch(async e=>{
- console.error('init',e);
- let errText=(e&&(e.code||e.message))?String(e.code||'')+' '+String(e.message||''):String(e||'Unknown error');
- if(errText.includes('TIMEOUT: Firebase Anonymous sign-in')){
-  $('userPill').textContent='Testing Firebase network…';
-  try{
-   const probe=fetch('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key='+encodeURIComponent(firebaseConfig.apiKey),{
-    method:'POST',headers:{'Content-Type':'application/json'},body:'{}'
-   });
-   const probeTimeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('Network probe also timed out after 10 seconds')),10000));
-   const resp=await Promise.race([probe,probeTimeout]);
-   const body=await resp.text();
-   errText='Anonymous sign-in timed out. Network probe HTTP '+resp.status+': '+body.slice(0,500);
-  }catch(probeErr){
-   errText='Anonymous sign-in timed out. Network probe failed: '+String(probeErr&&probeErr.message||probeErr);
+setTimeout(()=>{
+  const p=$('userPill');
+  if(p&&p.textContent==='Connecting…'){
+    p.textContent='Startup stalled';
+    const n=$('mainNotice');
+    if(n)n.innerHTML='<strong>CashBee startup stalled</strong> Please reopen the Mini App from Telegram.';
   }
- }
- $('userPill').textContent='Connection error';
- $('mainNotice').innerHTML='<strong>CashBee connection failed</strong><br><span style="overflow-wrap:anywhere;white-space:pre-wrap"></span>';
- const errSpan=$('mainNotice').querySelector('span');if(errSpan)errSpan.textContent=errText;
- toast(errText||'CashBee could not connect to Firebase.');
-});
+},12000);
 
+ensureUser().catch(e=>{
+  console.error('init',e);
+  const errText=(e&&(e.code||e.message))?String(e.code||'')+' '+String(e.message||''):String(e||'Unknown error');
+  $('userPill').textContent='Connection error';
+  $('mainNotice').innerHTML='<strong>CashBee connection failed</strong><br><span style="overflow-wrap:anywhere;white-space:pre-wrap"></span>';
+  const errSpan=$('mainNotice').querySelector('span');
+  if(errSpan)errSpan.textContent=errText;
+  toast(errText||'CashBee could not connect to Firebase.');
+});
 </script>
 </body>
 </html>
