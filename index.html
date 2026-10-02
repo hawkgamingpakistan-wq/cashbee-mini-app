@@ -188,19 +188,24 @@ function firebaseAppForTelegram(){
 }
 
 async function ensureUser(){
+ $('userPill').textContent='Starting Telegram check…';
  await initTelegram();
  if(!state.telegramConnected){
   updateUI();
   return;
  }
  state.app=firebaseAppForTelegram();
+ $('userPill').textContent='Firebase app ready; opening database…';
  state.db=state.app.firestore();
  const auth=state.app.auth();
+ $('userPill').textContent='Checking Firebase sign-in…';
  let u=auth.currentUser;
- if(!u)u=(await auth.signInAnonymously()).user;
+ if(!u){$('userPill').textContent='Signing in anonymously…';u=(await auth.signInAnonymously()).user;}
+ $('userPill').textContent='Sign-in OK; loading profile…';
  state.user=u;
 
  const userRef=state.db.collection('users').doc(u.uid);
+ $('userPill').textContent='Reading Firestore profile…';
  let snap=await userRef.get();
  const identity={
   uid:u.uid,
@@ -465,11 +470,15 @@ $('submitWithdrawal').onclick=submitWithdrawal;
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>setModal(b.dataset.close,false));
 document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.style.display='none'}));
 
+
+setTimeout(()=>{const p=$('userPill');if(p&&p.textContent==='Connecting…'){p.textContent='Startup stalled';const n=$('mainNotice');if(n)n.innerHTML='<strong>CashBee startup stalled</strong> The app did not reach Telegram/Firebase initialization. Check that the page and Firebase SDK scripts loaded, then reopen the Mini App.';}},12000);
 ensureUser().catch(e=>{
  console.error('init',e);
+ const errText=(e&&(e.code||e.message))?String(e.code||'')+' '+String(e.message||''):String(e||'Unknown error');
  $('userPill').textContent='Connection error';
- $('mainNotice').innerHTML='<strong>CashBee connection failed</strong>Check Firebase Anonymous Authentication and Firestore rules. Then reopen the Mini App from Telegram.';
- toast(e?.message||'CashBee could not connect to Firebase.');
+ $('mainNotice').innerHTML='<strong>CashBee connection failed</strong><br><span style="overflow-wrap:anywhere"></span>';
+ const errSpan=$('mainNotice').querySelector('span');if(errSpan)errSpan.textContent=errText;
+ toast(errText||'CashBee could not connect to Firebase.');
 });
 
 </script>
