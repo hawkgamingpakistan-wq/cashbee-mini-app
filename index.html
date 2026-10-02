@@ -54,6 +54,7 @@ button,input,select{font:inherit}button{cursor:pointer}#app{max-width:560px;marg
 'use strict';
 
 const firebaseConfig={apiKey:'AIzaSyCjXbCgARUdUhQSXZcwfQ8pBrb-c5706rg',authDomain:'cashbee-18fda.firebaseapp.com',projectId:'cashbee-18fda',storageBucket:'cashbee-18fda.firebasestorage.app',messagingSenderId:'571973453825',appId:'1:571973453825:web:01784ea53890893a619800',measurementId:'G-EKKJBYLSDN'};
+const APP_BUILD='cashbee-fixed-v4-2026-10-02';
 const BOT='CashBeeWorldBot';
 const COINS_PER_RUPEE=200;
 const DAILY_COINS=50;
@@ -188,7 +189,9 @@ function firebaseAppForTelegram(){
 }
 
 async function ensureUser(){
- $('userPill').textContent='Starting Telegram check…';
+ $('userPill').textContent='Starting CashBee…';
+ console.log(APP_BUILD);
+$('userPill').textContent='Starting Telegram check…';
  await initTelegram();
  if(!state.telegramConnected){
   updateUI();
@@ -477,7 +480,7 @@ document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if
 
 
 setTimeout(()=>{const p=$('userPill');if(p&&p.textContent==='Connecting…'){p.textContent='Startup stalled';const n=$('mainNotice');if(n)n.innerHTML='<strong>CashBee startup stalled</strong> The app did not reach Telegram/Firebase initialization. Check that the page and Firebase SDK scripts loaded, then reopen the Mini App.';}},12000);
-ensureUser().catch(e=>{
+ensureUser().catch(async e=>{
  console.error('init',e);
  let errText=(e&&(e.code||e.message))?String(e.code||'')+' '+String(e.message||''):String(e||'Unknown error');
  if(errText.includes('TIMEOUT: Firebase Anonymous sign-in')){
