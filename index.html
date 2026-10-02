@@ -41,7 +41,7 @@ button,input,select{font:inherit}button{cursor:pointer}#app{max-width:560px;marg
 
 <div id="tabEarn" class="tabPanel" style="display:none"><section class="section"><h2>Earn Center</h2><div class="stats"><div class="statBox"><small>Approved coins</small><b id="earnApproved">0</b></div><div class="statBox"><small>Pending claims</small><b id="earnPending">0</b></div></div><div class="card" style="margin-top:12px"><div class="task"><div class="icon">🎁</div><div class="grow"><b>Daily Check-in</b><span>50 Coins once per day, added automatically.</span></div><button class="mini" id="earnDailyBtn">Check in</button></div><div class="task"><div class="icon">📺</div><div class="grow"><b>Watch 5 Ads</b><span id="adProgress">0 of 5 successful ad views completed in the current 24-hour window. Total possible reward: 250 Coins.</span></div><button class="mini" id="earnAdBtn">Watch Ad</button></div></div></section></div>
 
-<div id="tabRef" class="tabPanel" style="display:none"><section class="section"><h2>Refer & Earn</h2><div class="refBox"><div style="font-weight:950;font-size:18px">Invite your friends</div><p style="color:#ddd;font-size:13px;line-height:1.45">Your link opens CashBee directly in Telegram. You receive 10% commission whenever the referred user earns a valid 50-coin reward.</p><div class="refLink" id="refLink">Preparing…</div><button class="btn" id="copyRefBtn">Copy Referral Link</button><button class="btn secondary" id="shareRefBtn">Share in Telegram</button></div><div class="card" style="margin-top:12px"><div class="statBox"><small>Referral status</small><b id="refStatus">No referred user recorded.</b></div></div></section></div>
+<div id="tabRef" class="tabPanel" style="display:none"><section class="section"><h2>Refer & Earn</h2><div class="refBox"><div style="font-weight:950;font-size:18px">Invite your friends</div><p style="color:#ddd;font-size:13px;line-height:1.45">Your link opens CashBee directly in Telegram. You receive 10% commission whenever the referred user earns a valid 50-coin reward.</p><div class="refLink" id="refLink">Preparing…</div><button class="btn" id="copyRefBtn">Copy Referral Link</button><button class="btn secondary" id="shareRefBtn">Share in Telegram</button></div><div class="stats" style="margin-top:12px"><div class="statBox"><small>Friends joined</small><b id="refCount">0</b></div><div class="statBox"><small>Commission</small><b>10%</b></div></div><div class="card" style="margin-top:12px"><div class="statBox"><small>Referral status</small><b id="refStatus">No referred user recorded.</b></div></div></section></div>
 
 <div id="tabProfile" class="tabPanel" style="display:none"><section class="section"><h2>Profile</h2><div class="card"><div class="historyItem"><span>User</span><b id="profileName">CashBee User</b></div><div class="historyItem"><span>Telegram ID</span><b id="profileTelegramId">—</b></div><div class="historyItem"><span>Telegram username</span><b id="profileTelegramUsername">—</b></div><div class="historyItem"><span>Firebase UID</span><b id="profileUid">—</b></div><div class="historyItem"><span>Coins</span><b id="profileCoins">0</b></div><div class="historyItem"><span>1,000 Coins</span><b>₹5</b></div><div class="historyItem"><span>Minimum withdrawal</span><b>₹5.00</b></div><div class="historyItem"><span>Payment method</span><b>UPI only</b></div></div></section><section class="section"><h2>Withdrawal History</h2><div class="card" id="withdrawHistory"><div class="empty">No withdrawal requests yet.</div></div></section></div>
 
@@ -65,7 +65,7 @@ const CLAIMS={daily:{amount:DAILY_COINS,label:'Daily Check-in'},ad:{amount:AD_CO
 const state={
  db:null,user:null,tg:null,tgUser:null,coins:0,pending:0,
  lastDailyAt:null,lastAdAt:null,adCount:0,adWindowStart:null,
- claimDocs:[],withdrawals:[],busy:false,refLink:'',refSource:null,referral:null,telegramConnected:false,adSdkReady:false
+ claimDocs:[],withdrawals:[],busy:false,refLink:'',refSource:null,referral:null,referralCount:0,telegramConnected:false,adSdkReady:false
 };
 let toastTimer=null;
 const $=id=>document.getElementById(id);
@@ -93,6 +93,7 @@ function updateUI(){
  $('profileCoins').textContent=String(state.coins);
  $('earnApproved').textContent=String(state.coins);
  $('earnPending').textContent=String(state.pending);
+ if($('refCount'))$('refCount').textContent=String(state.referralCount||0);
  $('profileName').textContent=(state.tgUser&&state.tgUser.first_name)||'CashBee User';
  $('profileTelegramId').textContent=state.tgUser?.id?String(state.tgUser.id):'Not connected';
  $('profileTelegramUsername').textContent=state.tgUser?.username?('@'+state.tgUser.username):'—';
@@ -150,6 +151,7 @@ async function loadReferralStatus(){
   if(!s.exists){$('refStatus').textContent='No referral attached.';state.referral=null;return}
   state.referral=s.data()||{};
   $('refStatus').textContent=`Referral active · 10% commission to ${String(state.referral.referrerId||'').slice(0,12)}…`;
+  if($('refCount'))$('refCount').textContent=String(state.referralCount||0);
  }catch(e){$('refStatus').textContent='Referral status unavailable.';console.warn('referral status',e)}
 }
 
@@ -179,15 +181,21 @@ async function initTelegram(){
  }
 }
 
+function firebaseAppForTelegram(){
+ const id=String(state.tgUser?.id||'unknown').replace(/[^0-9]/g,'');
+ const name=`cashbee_tg_${id||'unknown'}`;
+ try{return firebase.app(name)}catch(_){return firebase.initializeApp(firebaseConfig,name)}
+}
+
 async function ensureUser(){
  await initTelegram();
  if(!state.telegramConnected){
   updateUI();
   return;
  }
- if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
- state.db=firebase.firestore();
- const auth=firebase.auth();
+ state.app=firebaseAppForTelegram();
+ state.db=state.app.firestore();
+ const auth=state.app.auth();
  let u=auth.currentUser;
  if(!u)u=(await auth.signInAnonymously()).user;
  state.user=u;
@@ -204,7 +212,7 @@ async function ensureUser(){
  };
  if(!snap.exists){
   await userRef.set({
-   ...identity,coins:0,
+   ...identity,coins:0,referralCount:0,
    createdAt:firebase.firestore.FieldValue.serverTimestamp(),
    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
   });
@@ -223,6 +231,7 @@ async function ensureUser(){
  state.lastAdAt=d.lastAdAt||null;
  state.adCount=Number(d.adCount||0);
  state.adWindowStart=d.adWindowStart||null;
+ state.referralCount=Number(d.referralCount||0);
 
  userRef.onSnapshot(s=>{
   if(!s.exists)return;
@@ -232,6 +241,7 @@ async function ensureUser(){
   state.lastAdAt=d.lastAdAt||null;
   state.adCount=Number(d.adCount||0);
   state.adWindowStart=d.adWindowStart||null;
+  state.referralCount=Number(d.referralCount||0);
   updateUI();
  },e=>console.warn('balance listener',e));
 
@@ -256,6 +266,14 @@ async function attachReferralIfNeeded(){
    referrerId:inviter,referredUserId:state.user.uid,status:'active',
    createdAt:firebase.firestore.FieldValue.serverTimestamp()
   });
+  try{
+   await state.db.collection('users').doc(inviter).update({
+    referralCount:firebase.firestore.FieldValue.increment(1),
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+   });
+  }catch(countError){
+   console.warn('referral count update',countError);
+  }
   state.referral={referrerId:inviter,referredUserId:state.user.uid,status:'active'};
  }catch(e){console.warn('referral attach',e)}
 }
