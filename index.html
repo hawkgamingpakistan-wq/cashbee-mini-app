@@ -200,7 +200,12 @@ async function ensureUser(){
  const auth=state.app.auth();
  $('userPill').textContent='Checking Firebase sign-in…';
  let u=auth.currentUser;
- if(!u){$('userPill').textContent='Signing in anonymously…';u=(await auth.signInAnonymously()).user;}
+ if(!u){
+  $('userPill').textContent='Signing in anonymously…';
+  const authAttempt=auth.signInAnonymously();
+  const timeoutAttempt=new Promise((_,reject)=>setTimeout(()=>reject(new Error('TIMEOUT: Firebase Anonymous sign-in did not respond within 15 seconds.')),15000));
+  u=(await Promise.race([authAttempt,timeoutAttempt])).user;
+}
  $('userPill').textContent='Sign-in OK; loading profile…';
  state.user=u;
 
