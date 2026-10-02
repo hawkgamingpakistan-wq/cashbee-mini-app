@@ -35,7 +35,7 @@ button,input,select{font:inherit}button{cursor:pointer}#app{max-width:560px;marg
 <article class="card"><div class="icon">🎁</div><h3>Daily Check-in</h3><p>Claim 50 Coins once per day. Reward is added automatically after a successful check-in.</p><button class="btn secondary" id="dailyBtn">Daily Check-in · 50</button></article>
 <article class="card"><div class="icon">📺</div><h3>Watch 5 Ads</h3><p>Watch up to 5 available ads. Each successful ad = 50 Coins instantly. Total = 250 Coins.</p><button class="btn" id="adBtn">Watch Ad (0/5)</button></article>
 </section>
-<section class="section"><h2>Invite Friends</h2><div class="card"><div class="task"><div class="icon">👥</div><div class="grow"><b>10% referral commission</b><span>When a referred user's reward is approved, 10% of that reward is added to the referrer's balance.</span></div><button class="mini" id="referBtn">Invite</button></div></div></section>
+<section class="section"><h2>Invite Friends</h2><div class="card"><div class="task"><div class="icon">👥</div><div class="grow"><b>10% referral commission</b><span>Share your personal CashBee link. You earn 10% of each valid 50-coin reward made by a referred user.</span><div id="homeRefLink" class="refLink" style="margin-top:8px">Preparing…</div></div><button class="mini" id="referBtn">Invite</button></div></div></section>
 <section class="section"><h2>Reward History</h2><div class="card" id="claimHistory"><div class="empty">No claims yet.</div></div></section>
 </div>
 
@@ -97,8 +97,8 @@ function updateUI(){
  $('profileTelegramId').textContent=state.tgUser?.id?String(state.tgUser.id):'Not connected';
  $('profileTelegramUsername').textContent=state.tgUser?.username?('@'+state.tgUser.username):'—';
  $('profileUid').textContent=state.user?state.user.uid.slice(0,12)+'…':'—';
- $('userPill').textContent=state.telegramConnected?(((state.tgUser&&state.tgUser.first_name)||'User').slice(0,14)):'Open in Telegram';
- $('refLink').textContent=state.refLink||'Preparing…';
+ $('userPill').textContent=state.telegramConnected?('TG '+String(state.tgUser.id)):'Open in Telegram';
+ $('refLink').textContent=state.refLink||(state.telegramConnected?'Preparing referral link…':'Open CashBee from Telegram to get your personal referral link.'); if($('homeRefLink'))$('homeRefLink').textContent=state.refLink||'Open from Telegram to generate your link.';
  const count=activeAdCount();
  const progress=`${count} of ${ADS_REQUIRED} successful ad views completed in the current 24-hour window. Total possible reward: ${ADS_REQUIRED*AD_COINS} Coins.`;
  if($('adProgress'))$('adProgress').textContent=progress;
@@ -167,7 +167,7 @@ async function initTelegram(){
   state.tgUser=tg.initDataUnsafe?.user||null;
   const params=new URLSearchParams(window.location.search);
   state.refSource=tg.initDataUnsafe?.start_param||params.get('tgWebAppStartParam')||params.get('startapp')||null;
-  state.telegramConnected=Boolean(tg.initData && state.tgUser?.id);
+  state.telegramConnected=Boolean(state.tgUser?.id);
   state.tg.BackButton?.hide();
   if(!state.telegramConnected){
    $('userPill').textContent='Open in Telegram';
@@ -239,7 +239,6 @@ async function ensureUser(){
  await attachReferralIfNeeded();
  updateUI();
  watchClaims();
- preloadMonetagAd();
 }
 
 async function attachReferralIfNeeded(){
@@ -267,24 +266,12 @@ async function waitForAdSdk(timeoutMs=10000){
  if(typeof window.show_11935934!=='function')throw new Error('Monetag SDK not ready');
 }
 
-async function preloadMonetagAd(){
- try{
-  if(!state.telegramConnected||!state.tgUser?.id)return;
-  await waitForAdSdk();
-  await window.show_11935934({type:'preload',ymid:String(state.tgUser.id)});
-  state.adSdkReady=true;
- }catch(e){
-  state.adSdkReady=false;
-  console.warn('ad preload',e);
- }
-}
 
-async function showMonetagAd(source){
+async function showMonetagAd(){
  await waitForAdSdk();
  let lastError=null;
- const args={ymid:String(state.tgUser?.id||state.user.uid),requestVar:source||'reward'};
  for(let i=0;i<2;i++){
-  try{return await window.show_11935934(args)}
+  try{return await window.show_11935934();}
   catch(e){lastError=e;if(i===0)await sleep(700)}
  }
  throw lastError||new Error('Ad unavailable');
@@ -376,7 +363,7 @@ async function rewardDaily(){
   toast('✅ Daily Check-in: +50 Coins added!');
  }catch(e){
   console.error('daily reward',e);
-  if(e.message==='DAILY_LIMIT'||e.code==='permission-denied')toast('Daily Check-in already used in the last 24 hours.');
+  if(e.message==='DAILY_LIMIT')toast('Daily Check-in already used in the last 24 hours.'); else if(e.code==='permission-denied')toast('Check-in blocked by Firestore rules. Publish the latest rules, then reopen CashBee.');
   else toast('Daily reward could not be saved.');
  }finally{state.busy=false}
 }
@@ -389,14 +376,14 @@ async function rewardAd(source='home'){
    toast('✅ 5 ads already completed. Come back after the 24-hour window.');return;
   }
   toast('Loading ad…');
-  await showMonetagAd(source);
+  await showMonetagAd();
   await commitReward('ad');
   toast('✅ Ad completed: +50 Coins added!');
  }catch(e){
   console.error('ad reward',e);
-  if(e.message==='ADS_LIMIT'||e.code==='permission-denied')toast('Ad reward limit reached or Firestore rules are not published.');
+  if(e.message==='ADS_LIMIT')toast('✅ 5 ads already completed for this 24-hour window.'); else if(e.code==='permission-denied')toast('Reward blocked by Firestore rules. Publish the latest rules, then reopen CashBee.');
   else if(String(e.message).toLowerCase().includes('monetag')||String(e.message).toLowerCase().includes('ad'))toast('Ad is not available right now. Please try again.');
-  else toast('Ad finished, but the reward could not be saved. Please refresh and retry once.');
+  else toast('Ad finished, but +50 Coins could not be saved. Please retry once.');
  }finally{state.busy=false;updateUI()}
 }
 
