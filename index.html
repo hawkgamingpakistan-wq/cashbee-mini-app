@@ -29,13 +29,13 @@ button,input,select{font:inherit}button{cursor:pointer}#app{max-width:560px;marg
 <div class="notice" id="mainNotice"><strong>CashBee rewards</strong>1,000 Coins = ₹5. Daily Check-in gives 50 Coins instantly. Every successful ad view gives 50 Coins instantly. Complete up to 5 ads in a rolling 24 hours for up to 250 Coins. Referral activity is recorded safely for processing.</div>
 <section class="grid">
 <article class="card"><div class="icon">🎁</div><h3>Daily Check-in</h3><p>Claim 50 Coins once per day. Reward is added automatically after a successful check-in.</p><button class="btn secondary" id="dailyBtn">Daily Check-in · 50</button></article>
-<article class="card"><div class="icon">📺</div><h3>Watch 5 Ads</h3><p>Watch up to 5 available ads. Each successful ad = 50 Coins instantly. Total = 250 Coins.</p><button class="btn" id="adBtn">Watch Ad (0/5)</button></article>
+<article class="card"><div class="icon">📺</div><h3>Monetag Ads</h3><p>Watch up to 5 ads. Each successful ad = 50 Coins. Total = 250 Coins per 24 hours.</p><button class="btn" id="adBtn">Watch Monetag (0/5)</button></article><article class="card"><div class="icon">⭐</div><h3>AdsGram Special Tasks</h3><p>Watch up to 5 AdsGram rewarded ads. Each successful ad = 50 Coins. Separate 24-hour limit.</p><button class="btn secondary" id="adsgramBtn">Watch AdsGram (0/5)</button></article>
 </section>
 <section class="section"><h2>Invite Friends</h2><div class="card"><div class="task"><div class="icon">👥</div><div class="grow"><b>10% referral commission</b><span>Share your personal CashBee link. Earn 10% referral commission only when a referred friend completes an eligible ad reward.</span><div id="homeRefLink" class="refLink" style="margin-top:8px">Preparing…</div></div><button class="mini" id="referBtn">Invite</button></div></div></section>
 <section class="section"><h2>Reward History</h2><div class="card" id="claimHistory"><div class="empty">No claims yet.</div></div></section>
 </div>
 
-<div id="tabEarn" class="tabPanel" style="display:none"><section class="section"><h2>Earn Center</h2><div class="stats"><div class="statBox"><small>Approved coins</small><b id="earnApproved">0</b></div><div class="statBox"><small>Pending claims</small><b id="earnPending">0</b></div></div><div class="card" style="margin-top:12px"><div class="task"><div class="icon">🎁</div><div class="grow"><b>Daily Check-in</b><span>50 Coins once per day, added automatically.</span></div><button class="mini" id="earnDailyBtn">Check in</button></div><div class="task"><div class="icon">📺</div><div class="grow"><b>Watch 5 Ads</b><span id="adProgress">0 of 5 successful ad views completed in the current 24-hour window. Total possible reward: 250 Coins.</span></div><button class="mini" id="earnAdBtn">Watch Ad</button></div></div></section></div>
+<div id="tabEarn" class="tabPanel" style="display:none"><section class="section"><h2>Earn Center</h2><div class="stats"><div class="statBox"><small>Approved coins</small><b id="earnApproved">0</b></div><div class="statBox"><small>Pending claims</small><b id="earnPending">0</b></div></div><div class="card" style="margin-top:12px"><div class="task"><div class="icon">🎁</div><div class="grow"><b>Daily Check-in</b><span>50 Coins once per day, added automatically.</span></div><button class="mini" id="earnDailyBtn">Check in</button></div><div class="task"><div class="icon">📺</div><div class="grow"><b>Monetag Ads</b><span id="adProgress">0 of 5 successful ad views completed in the current 24-hour window. Total possible reward: 250 Coins.</span></div><button class="mini" id="earnAdBtn">Watch Ad</button></div><div class="task"><div class="icon">⭐</div><div class="grow"><b>AdsGram Special Tasks</b><span id="adsgramProgress">0 of 5 AdsGram rewarded ads completed in the current 24-hour window. Total possible reward: 250 Coins.</span></div><button class="mini" id="earnAdsgramBtn">Watch AdsGram</button></div></div></section></div>
 
 <div id="tabRef" class="tabPanel" style="display:none"><section class="section"><h2>Refer & Earn</h2><div class="refBox"><div style="font-weight:950;font-size:18px">Invite your friends</div><p style="color:#ddd;font-size:13px;line-height:1.45">Your link opens CashBee directly in Telegram. Earn 10% referral commission only when a referred friend completes an eligible ad reward.</p><div class="refLink" id="refLink">Preparing…</div><button class="btn" id="copyRefBtn">Copy Referral Link</button><button class="btn secondary" id="shareRefBtn">Share in Telegram</button></div><div class="stats" style="margin-top:12px"><div class="statBox"><small>Friends joined</small><b id="refCount">0</b></div><div class="statBox"><small>Commission</small><b>10%</b></div></div><div class="card" style="margin-top:12px"><div class="statBox"><small>Referral status</small><b id="refStatus">No referred user recorded.</b></div></div></section></div>
 
@@ -50,13 +50,16 @@ button,input,select{font:inherit}button{cursor:pointer}#app{max-width:560px;marg
 'use strict';
 
 const firebaseConfig={apiKey:'AIzaSyCjXbCgARUdUhQSXZcwfQ8pBrb-c5706rg',authDomain:'cashbee-18fda.firebaseapp.com',projectId:'cashbee-18fda',storageBucket:'cashbee-18fda.firebasestorage.app',messagingSenderId:'571973453825',appId:'1:571973453825:web:01784ea53890893a619800',measurementId:'G-EKKJBYLSDN'};
-const APP_BUILD='cashbee-final-v7-ad-referral-commission-2026-10-02';
+const APP_BUILD='cashbee-final-v8-adsgram-separate-quotas-2026-10-03';
 const BOT='CashBeeWorldBot';
 const COINS_PER_RUPEE=200;
 const DAILY_COINS=50;
 const AD_COINS=50;
 const ADS_REQUIRED=5;
 const REFERRAL_RATE=0.10;
+// Replace with the numeric blockId from your AdsGram publisher dashboard.
+const ADSGRAM_BLOCK_ID='51610';
+let adsgramController=null;
 const CLAIMS={daily:{amount:DAILY_COINS,label:'Daily Check-in'},ad:{amount:AD_COINS,label:'Ad Reward'}};
 
 
@@ -74,7 +77,8 @@ const SDK_URLS={
   firebaseApp:'https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js',
   firebaseAuth:'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js',
   firebaseFirestore:'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js',
-  monetag:'https://libtl.com/sdk.js'
+  monetag:'https://libtl.com/sdk.js',
+  adsgram:'https://sad.adsgram.ai/js/sad.min.js'
 };
 
 function loadScriptOnce(src,id,attrs={}){
@@ -135,7 +139,7 @@ window.addEventListener('unhandledrejection',e=>{
 
 const state={
  db:null,user:null,tg:null,tgUser:null,coins:0,pending:0,
- lastDailyAt:null,lastAdAt:null,adCount:0,adWindowStart:null,
+ lastDailyAt:null,lastAdAt:null,adCount:0,adWindowStart:null,adsgramCount:0,adsgramWindowStart:null,
  claimDocs:[],withdrawals:[],busy:false,refLink:'',refSource:null,referral:null,referralCount:0,telegramConnected:false,adSdkReady:false
 };
 let toastTimer=null;
@@ -158,6 +162,10 @@ function activeAdCount(){
  const within=state.adWindowStart&&timestampAgeMs(state.adWindowStart)<86400000;
  return within?Math.min(Number(state.adCount||0),ADS_REQUIRED):0;
 }
+function activeAdsgramCount(){
+ const within=state.adsgramWindowStart&&timestampAgeMs(state.adsgramWindowStart)<86400000;
+ return within?Math.min(Number(state.adsgramCount||0),ADS_REQUIRED):0;
+}
 
 function updateUI(){
  $('coins').textContent=String(state.coins);
@@ -177,6 +185,10 @@ function updateUI(){
  if($('adProgress'))$('adProgress').textContent=progress;
  if($('adBtn'))$('adBtn').textContent=count>=ADS_REQUIRED?'Ads complete · 5/5':'Watch Ad ('+count+'/5)';
  if($('earnAdBtn'))$('earnAdBtn').textContent=count>=ADS_REQUIRED?'Ads complete':'Watch Ad';
+ const agCount=activeAdsgramCount();
+ if($('adsgramProgress'))$('adsgramProgress').textContent=`${agCount} of ${ADS_REQUIRED} AdsGram rewarded ads completed in the current 24-hour window. Total possible reward: ${ADS_REQUIRED*AD_COINS} Coins.`;
+ if($('adsgramBtn'))$('adsgramBtn').textContent=agCount>=ADS_REQUIRED?'AdsGram complete · 5/5':`Watch AdsGram (${agCount}/5)`;
+ if($('earnAdsgramBtn'))$('earnAdsgramBtn').textContent=agCount>=ADS_REQUIRED?'AdsGram complete':'Watch AdsGram';
  const dailyUsed=state.lastDailyAt&&timestampAgeMs(state.lastDailyAt)<86400000;
  if($('dailyBtn'))$('dailyBtn').textContent=dailyUsed?'Daily Check-in used':'Daily Check-in · 50';
  if($('earnDailyBtn'))$('earnDailyBtn').textContent=dailyUsed?'Used today':'Check in';
@@ -341,6 +353,8 @@ async function ensureUser(){
  state.lastAdAt=d.lastAdAt||null;
  state.adCount=Number(d.adCount||0);
  state.adWindowStart=d.adWindowStart||null;
+ state.adsgramCount=Number(d.adsgramCount||0);
+ state.adsgramWindowStart=d.adsgramWindowStart||null;
  state.referralCount=Number(d.referralCount||0);
 
  userRef.onSnapshot(s=>{
@@ -351,6 +365,8 @@ async function ensureUser(){
   state.lastAdAt=d.lastAdAt||null;
   state.adCount=Number(d.adCount||0);
   state.adWindowStart=d.adWindowStart||null;
+  state.adsgramCount=Number(d.adsgramCount||0);
+  state.adsgramWindowStart=d.adsgramWindowStart||null;
   state.referralCount=Number(d.referralCount||0);
   updateUI();
  },e=>console.warn('balance listener',e));
@@ -414,11 +430,21 @@ async function showMonetagAd(){
  throw lastError||new Error('Ad unavailable');
 }
 
+async function showAdsGramAd(){
+ if(!ADSGRAM_BLOCK_ID||ADSGRAM_BLOCK_ID==='PASTE_ADSGRAM_BLOCK_ID_HERE')throw new Error('AdsGram block ID is not configured');
+ await Promise.race([loadScriptOnce(SDK_URLS.adsgram,'cashbee-adsgram-sdk'),new Promise((_,reject)=>setTimeout(()=>reject(new Error('AdsGram SDK loading timed out')),10000))]);
+ if(!window.Adsgram||typeof window.Adsgram.init!=='function')throw new Error('AdsGram SDK not ready');
+ if(!adsgramController)adsgramController=window.Adsgram.init({blockId:ADSGRAM_BLOCK_ID});
+ const result=await adsgramController.show();
+ if(result&&(result.error===true||result.done===false))throw new Error('AdsGram ad was not completed');
+ return result;
+}
+
 function timestampAgeMs(v){
  try{return v&&typeof v.toMillis==='function'?Date.now()-v.toMillis():Number.POSITIVE_INFINITY}catch(_){return Number.POSITIVE_INFINITY}
 }
 
-async function commitReward(type){
+async function commitReward(type,provider='monetag'){
   const eventId=`reward_${state.user.uid}_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
   const userRef=state.db.collection('users').doc(state.user.uid);
   const eventRef=state.db.collection('rewardEvents').doc(eventId);
@@ -454,16 +480,23 @@ async function commitReward(type){
 
     let nextAdCount=Number(user.adCount||0);
     let nextAdWindowStart=user.adWindowStart||null;
+    let nextAdsgramCount=Number(user.adsgramCount||0);
+    let nextAdsgramWindowStart=user.adsgramWindowStart||null;
 
     if(type==='ad'){
-      const withinWindow=nextAdWindowStart&&timestampAgeMs(nextAdWindowStart)<86400000;
+      const isAdsgram=provider==='adsgram';
+      let count=isAdsgram?nextAdsgramCount:nextAdCount;
+      let windowStart=isAdsgram?nextAdsgramWindowStart:nextAdWindowStart;
+      const withinWindow=windowStart&&timestampAgeMs(windowStart)<86400000;
       if(withinWindow){
-        if(nextAdCount>=ADS_REQUIRED)throw new Error('ADS_LIMIT');
-        nextAdCount+=1;
+        if(count>=ADS_REQUIRED)throw new Error(isAdsgram?'ADSGRAM_LIMIT':'ADS_LIMIT');
+        count+=1;
       }else{
-        nextAdCount=1;
-        nextAdWindowStart=serverTs;
+        count=1;
+        windowStart=serverTs;
       }
+      if(isAdsgram){nextAdsgramCount=count;nextAdsgramWindowStart=windowStart;}
+      else{nextAdCount=count;nextAdWindowStart=windowStart;}
     }else if(type==='daily'){
       if(user.lastDailyAt&&timestampAgeMs(user.lastDailyAt)<86400000)throw new Error('DAILY_LIMIT');
     }
@@ -482,6 +515,7 @@ async function commitReward(type){
       referralCommission:commission,
       referralCommissionStatus:commissionStatus,
       referrerId:commission?referrerId:'',
+      ...(type==='ad'?{provider}:{}),
       createdAt:serverTs
     });
 
@@ -495,7 +529,8 @@ async function commitReward(type){
       date:new Date().toISOString().slice(0,10),
       createdAt:serverTs,
       referralCommission:commission,
-      referralCommissionStatus:commissionStatus
+      referralCommissionStatus:commissionStatus,
+      ...(type==='ad'?{provider}:{})
     });
 
     const userUpdate={
@@ -507,7 +542,8 @@ async function commitReward(type){
     if(type==='daily')userUpdate.lastDailyAt=serverTs;
     if(type==='ad'){
       userUpdate.adCount=nextAdCount;
-      userUpdate.adWindowStart=nextAdWindowStart;
+      if(provider==='adsgram'){userUpdate.adsgramCount=nextAdsgramCount;userUpdate.adsgramWindowStart=nextAdsgramWindowStart;}
+      else{userUpdate.adCount=nextAdCount;userUpdate.adWindowStart=nextAdWindowStart;}
       userUpdate.lastAdAt=serverTs;
     }
 
@@ -537,20 +573,23 @@ async function rewardDaily(){
  }finally{state.busy=false}
 }
 
-async function rewardAd(source='home'){
+async function rewardAd(provider='monetag',source='home'){
  if(!requireConnected()||state.busy)return;
  state.busy=true;
  try{
-  if(Number(state.adCount||0)>=ADS_REQUIRED && timestampAgeMs(state.adWindowStart)<86400000){
-   toast('✅ 5 ads already completed. Come back after the 24-hour window.');return;
-  }
-  toast('Loading ad…');
-  await showMonetagAd();
-  await commitReward('ad');
-  toast('✅ Ad completed: +50 Coins added!');
+  const count=provider==='adsgram'?activeAdsgramCount():activeAdCount();
+  if(count>=ADS_REQUIRED){toast(provider==='adsgram'?'✅ 5 AdsGram ads already completed. Come back after the 24-hour window.':'✅ 5 Monetag ads already completed. Come back after the 24-hour window.');return;}
+  toast(provider==='adsgram'?'Loading AdsGram ad…':'Loading Monetag ad…');
+  if(provider==='adsgram')await showAdsGramAd();else await showMonetagAd();
+  await commitReward('ad',provider);
+  toast(provider==='adsgram'?'✅ AdsGram completed: +50 Coins added!':'✅ Monetag ad completed: +50 Coins added!');
  }catch(e){
-  console.error('ad reward',e);
-  if(e.message==='ADS_LIMIT')toast('✅ 5 ads already completed for this 24-hour window.'); else if(e.code==='permission-denied')toast('Reward blocked by Firestore rules. Publish the latest rules, then reopen CashBee.');
+  console.error(provider+' ad reward',e);
+  if(e.message==='ADS_LIMIT')toast('✅ 5 Monetag ads already completed for this 24-hour window.');
+  else if(e.message==='ADSGRAM_LIMIT')toast('✅ 5 AdsGram ads already completed for this 24-hour window.');
+  else if(e.code==='permission-denied')toast('Reward blocked by Firestore rules. Publish the matching updated rules, then reopen CashBee.');
+  else if(provider==='adsgram'&&String(e.message).toLowerCase().includes('block id'))toast('Please set your AdsGram block ID in the app code.');
+  else if(String(e.message).toLowerCase().includes('adsgram'))toast('AdsGram is unavailable right now. Please try again.');
   else if(String(e.message).toLowerCase().includes('monetag')||String(e.message).toLowerCase().includes('ad'))toast('Ad is not available right now. Please try again.');
   else toast('Ad finished, but +50 Coins could not be saved. Please retry once.');
  }finally{state.busy=false;updateUI()}
@@ -634,8 +673,10 @@ async function submitWithdrawal(){
   }
 }
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
-$('adBtn').onclick=()=>rewardAd('home_ad');
-$('earnAdBtn').onclick=()=>rewardAd('earn_ad');
+$('adBtn').onclick=()=>rewardAd('monetag','home_ad');
+$('earnAdBtn').onclick=()=>rewardAd('monetag','earn_ad');
+$('adsgramBtn').onclick=()=>rewardAd('adsgram','home_adsgram');
+$('earnAdsgramBtn').onclick=()=>rewardAd('adsgram','earn_adsgram');
 $('dailyBtn').onclick=rewardDaily;
 $('earnDailyBtn').onclick=rewardDaily;
 $('referBtn').onclick=()=>switchTab('ref');
